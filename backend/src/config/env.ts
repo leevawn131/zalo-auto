@@ -11,6 +11,10 @@ const envSchema = z.object({
   SESSION_SECRET_KEY: z.string().min(32).default("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"),
   CORS_ORIGIN: z.string().default("http://localhost:3000"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  SEPAY_API_KEY: z.string().default("test-sepay-api-key"),
+  SEPAY_BANK_NAME: z.string().default("MBBank"),
+  SEPAY_ACCOUNT_NUMBER: z.string().default("9999999999"),
+  SEPAY_ACCOUNT_HOLDER: z.string().default("CONG TY CONG NGHE ZALO AUTO"),
 });
 
 export const env = envSchema.parse(process.env);

@@ -4,6 +4,9 @@ import React, { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { QRLoginModal } from "@/components/QRLoginModal";
 import { AccountList, type ZaloAccountItem } from "@/components/AccountList";
+import { BotConfigModal } from "@/components/BotConfigModal";
+import { MessageLogsModal } from "@/components/MessageLogsModal";
+import { SubscriptionModal } from "@/components/SubscriptionModal";
 import { fetchWithAuth, getStoredToken, setStoredToken, removeStoredToken } from "@/lib/api";
 import { connectSocket } from "@/lib/socket";
 import {
@@ -16,14 +19,25 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
+  Sparkles,
 } from "lucide-react";
 
 export default function HomePage() {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<{ email: string; name?: string } | null>(null);
   const [accounts, setAccounts] = useState<ZaloAccountItem[]>([]);
-  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [subscription, setSubscription] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Modals state
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+  const [configModalAccount, setConfigModalAccount] = useState<{ id: string; name: string } | null>(
+    null
+  );
+  const [logsModalAccount, setLogsModalAccount] = useState<{ id: string; name: string } | null>(
+    null
+  );
 
   // Auth form state
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
@@ -39,6 +53,7 @@ export default function HomePage() {
       setToken(existingToken);
       loadUserProfile();
       loadAccounts();
+      loadSubscription();
     } else {
       setIsLoading(false);
     }
@@ -88,6 +103,18 @@ export default function HomePage() {
     }
   };
 
+  const loadSubscription = async () => {
+    try {
+      const res = await fetchWithAuth("/api/billing/subscription");
+      if (res.ok) {
+        const data = await res.json();
+        setSubscription(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -112,6 +139,7 @@ export default function HomePage() {
       setToken(data.token);
       setUser(data.user);
       loadAccounts();
+      loadSubscription();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setAuthError(msg);
@@ -125,6 +153,7 @@ export default function HomePage() {
     setToken(null);
     setUser(null);
     setAccounts([]);
+    setSubscription(null);
   };
 
   const handleReconnect = async (accountId: string) => {
@@ -304,24 +333,38 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">Tài khoản Zalo kết nối</h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Đang quản lý{" "}
-                  <span className="font-semibold text-slate-700">{accounts.length}</span> tài khoản
-                  (
+                <div className="flex items-center space-x-3 mt-1 text-xs text-slate-500">
+                  <span>
+                    Tổng cộng: <strong className="text-slate-700">{accounts.length}</strong> tài khoản
+                  </span>
+                  <span>•</span>
                   <span className="text-emerald-600 font-semibold">
                     {accounts.filter((a) => a.status === "ONLINE").length} đang hoạt động
                   </span>
-                  )
-                </p>
+                </div>
               </div>
 
-              <button
-                onClick={() => setIsQrModalOpen(true)}
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all shadow-md shadow-blue-500/20 active:scale-95"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Kết nối Zalo mới</span>
-              </button>
+              <div className="flex items-center space-x-3 w-full sm:w-auto">
+                <button
+                  onClick={() => setIsSubModalOpen(true)}
+                  className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-2xl text-xs font-semibold bg-gradient-to-r from-amber-50 to-orange-50 text-amber-900 border border-amber-200 hover:shadow-sm transition-all"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>
+                    {subscription?.isActive
+                      ? `Gói thuê bao (${subscription.daysRemaining} ngày)`
+                      : "Gia hạn / Nâng cấp SePay"}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setIsQrModalOpen(true)}
+                  className="flex-1 sm:flex-none flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-2xl text-xs font-semibold transition-all shadow-md shadow-blue-500/20 active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Kết nối Zalo mới</span>
+                </button>
+              </div>
             </div>
 
             {/* Account List */}
@@ -331,6 +374,8 @@ export default function HomePage() {
               onDisconnect={handleDisconnect}
               onDelete={handleDelete}
               onReauth={() => setIsQrModalOpen(true)}
+              onOpenConfig={(id, name) => setConfigModalAccount({ id, name })}
+              onOpenLogs={(id, name) => setLogsModalAccount({ id, name })}
             />
           </div>
         )}
@@ -342,6 +387,31 @@ export default function HomePage() {
         onClose={() => setIsQrModalOpen(false)}
         onSuccess={() => {
           loadAccounts();
+        }}
+      />
+
+      {/* Bot Config Modal */}
+      <BotConfigModal
+        isOpen={!!configModalAccount}
+        accountId={configModalAccount?.id || null}
+        accountName={configModalAccount?.name || ""}
+        onClose={() => setConfigModalAccount(null)}
+      />
+
+      {/* Message Logs Modal */}
+      <MessageLogsModal
+        isOpen={!!logsModalAccount}
+        accountId={logsModalAccount?.id || null}
+        accountName={logsModalAccount?.name || ""}
+        onClose={() => setLogsModalAccount(null)}
+      />
+
+      {/* Subscription & SePay Modal */}
+      <SubscriptionModal
+        isOpen={isSubModalOpen}
+        onClose={() => setIsSubModalOpen(false)}
+        onSubscriptionUpdated={() => {
+          loadSubscription();
         }}
       />
     </div>

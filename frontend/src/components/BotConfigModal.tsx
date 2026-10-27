@@ -1,0 +1,504 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { fetchWithAuth } from "@/lib/api";
+import {
+  X,
+  Plus,
+  Trash2,
+  Check,
+  Settings,
+  Sliders,
+  MessageSquare,
+  Bot,
+  RefreshCw,
+  AlertCircle,
+} from "lucide-react";
+
+interface Rule {
+  id: string;
+  keyword: string;
+  matchType: "EXACT" | "CONTAINS" | "REGEX";
+  replyMessage: string;
+  isEnabled: boolean;
+  priority: number;
+}
+
+interface BotConfig {
+  id: string;
+  accountId: string;
+  isEnabled: boolean;
+  rateLimitPerMinute: number;
+  delayMinMs: number;
+  delayMaxMs: number;
+  replySelf: boolean;
+  replyInGroup: boolean;
+  replyInPrivate: boolean;
+  rules: Rule[];
+}
+
+interface BotConfigModalProps {
+  isOpen: boolean;
+  accountId: string | null;
+  accountName: string;
+  onClose: () => void;
+}
+
+export function BotConfigModal({
+  isOpen,
+  accountId,
+  accountName,
+  onClose,
+}: BotConfigModalProps) {
+  const [config, setConfig] = useState<BotConfig | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<"rules" | "settings">("rules");
+
+  // New rule form
+  const [newKeyword, setNewKeyword] = useState("");
+  const [newMatchType, setNewMatchType] = useState<"EXACT" | "CONTAINS" | "REGEX">("CONTAINS");
+  const [newReplyMessage, setNewReplyMessage] = useState("");
+  const [newPriority, setNewPriority] = useState(0);
+
+  useEffect(() => {
+    if (!isOpen || !accountId) return;
+    loadConfig();
+  }, [isOpen, accountId]);
+
+  const loadConfig = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetchWithAuth(`/api/zalo/accounts/${accountId}/bot-config`);
+      if (res.ok) {
+        const data = await res.json();
+        setConfig(data.config);
+      }
+    } catch (err) {
+      console.error("Failed to load bot config", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleBot = async () => {
+    if (!config || !accountId) return;
+    const nextState = !config.isEnabled;
+    try {
+      const res = await fetchWithAuth(`/api/zalo/accounts/${accountId}/bot-config`, {
+        method: "PUT",
+        body: JSON.stringify({ isEnabled: nextState }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setConfig((prev) => (prev ? { ...prev, isEnabled: data.config.isEnabled } : null));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!config || !accountId) return;
+    setIsSaving(true);
+    try {
+      const res = await fetchWithAuth(`/api/zalo/accounts/${accountId}/bot-config`, {
+        method: "PUT",
+        body: JSON.stringify({
+          delayMinMs: config.delayMinMs,
+          delayMaxMs: config.delayMaxMs,
+          rateLimitPerMinute: config.rateLimitPerMinute,
+          replyInPrivate: config.replyInPrivate,
+          replyInGroup: config.replyInGroup,
+          replySelf: config.replySelf,
+        }),
+      });
+      if (res.ok) {
+        alert("Cập nhật cài đặt thành công!");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleAddRule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accountId || !newKeyword.trim() || !newReplyMessage.trim()) return;
+
+    try {
+      const res = await fetchWithAuth(`/api/zalo/accounts/${accountId}/rules`, {
+        method: "POST",
+        body: JSON.stringify({
+          keyword: newKeyword.trim(),
+          matchType: newMatchType,
+          replyMessage: newReplyMessage.trim(),
+          priority: newPriority,
+          isEnabled: true,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setConfig((prev) =>
+          prev ? { ...prev, rules: [data.rule, ...prev.rules] } : null
+        );
+        setNewKeyword("");
+        setNewReplyMessage("");
+        setNewPriority(0);
+      }
+    } catch (err) {
+      console.error("Failed to add rule", err);
+    }
+  };
+
+  const handleDeleteRule = async (ruleId: string) => {
+    if (!accountId) return;
+    try {
+      const res = await fetchWithAuth(`/api/zalo/accounts/${accountId}/rules/${ruleId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setConfig((prev) =>
+          prev ? { ...prev, rules: prev.rules.filter((r) => r.id !== ruleId) } : null
+        );
+      }
+    } catch (err) {
+      console.error("Failed to delete rule", err);
+    }
+  };
+
+  const handleToggleRule = async (ruleId: string, currentEnabled: boolean) => {
+    if (!accountId) return;
+    try {
+      const res = await fetchWithAuth(`/api/zalo/accounts/${accountId}/rules/${ruleId}`, {
+        method: "PUT",
+        body: JSON.stringify({ isEnabled: !currentEnabled }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setConfig((prev) =>
+          prev
+            ? {
+                ...prev,
+                rules: prev.rules.map((r) => (r.id === ruleId ? data.rule : r)),
+              }
+            : null
+        );
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl">
+              <Bot className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-800 text-base">Cấu hình Auto-Reply</h3>
+              <p className="text-xs text-slate-500">Tài khoản: {accountName}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            {config && (
+              <button
+                onClick={handleToggleBot}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm ${
+                  config.isEnabled
+                    ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                    : "bg-slate-200 text-slate-600 hover:bg-slate-300"
+                }`}
+              >
+                <span>{config.isEnabled ? "Bot: Đang Bật" : "Bot: Đang Tắt"}</span>
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Selector */}
+        <div className="flex border-b border-slate-100 px-6 bg-white">
+          <button
+            onClick={() => setActiveTab("rules")}
+            className={`py-3 text-xs font-semibold border-b-2 mr-6 transition-all ${
+              activeTab === "rules"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            Từ khóa phản hồi ({config?.rules.length || 0})
+          </button>
+          <button
+            onClick={() => setActiveTab("settings")}
+            className={`py-3 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === "settings"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            Cài đặt nâng cao (Độ trễ & Giới hạn)
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 overflow-y-auto flex-1">
+          {isLoading ? (
+            <div className="py-12 flex flex-col items-center justify-center">
+              <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mb-2" />
+              <p className="text-xs text-slate-400">Đang tải cấu hình...</p>
+            </div>
+          ) : activeTab === "rules" ? (
+            <div className="space-y-6">
+              {/* Add New Rule Form */}
+              <form
+                onSubmit={handleAddRule}
+                className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-blue-900 flex items-center space-x-1.5">
+                    <Plus className="w-4 h-4 text-blue-600" />
+                    <span>Thêm quy tắc trả lời mới</span>
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Từ khóa (Keyword)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ví dụ: tư vấn, giá, chào bạn"
+                      value={newKeyword}
+                      onChange={(e) => setNewKeyword(e.target.value)}
+                      className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Loại khớp
+                    </label>
+                    <select
+                      value={newMatchType}
+                      onChange={(e) => setNewMatchType(e.target.value as any)}
+                      className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                    >
+                      <option value="CONTAINS">Chứa từ khóa</option>
+                      <option value="EXACT">Khớp chính xác</option>
+                      <option value="REGEX">Biểu thức Regex</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Câu trả lời tự động (Auto-reply message)
+                  </label>
+                  <textarea
+                    required
+                    rows={2}
+                    placeholder="Nội dung bot sẽ tự động gửi lại cho khách..."
+                    value={newReplyMessage}
+                    onChange={(e) => setNewReplyMessage(e.target.value)}
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[11px] text-slate-500">Độ ưu tiên:</span>
+                    <input
+                      type="number"
+                      value={newPriority}
+                      onChange={(e) => setNewPriority(parseInt(e.target.value, 10) || 0)}
+                      className="w-16 text-xs px-2 py-1 border border-slate-200 rounded-lg text-center"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-xl font-medium transition-colors shadow-sm shadow-blue-500/20"
+                  >
+                    Lưu quy tắc
+                  </button>
+                </div>
+              </form>
+
+              {/* Rules List */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-semibold text-slate-600">Danh sách quy tắc đã lưu</h4>
+
+                {config?.rules.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    Chưa có từ khóa nào. Hãy tạo từ khóa đầu tiên ở trên!
+                  </div>
+                ) : (
+                  config?.rules.map((rule) => (
+                    <div
+                      key={rule.id}
+                      className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-sm flex items-start justify-between gap-3 hover:border-slate-300 transition-all"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-semibold text-slate-800 text-xs">{rule.keyword}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">
+                            {rule.matchType === "CONTAINS"
+                              ? "Chứa từ"
+                              : rule.matchType === "EXACT"
+                              ? "Chính xác"
+                              : "Regex"}
+                          </span>
+                          {rule.priority > 0 && (
+                            <span className="text-[10px] text-blue-600 font-medium">
+                              Ưu tiên: {rule.priority}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 mt-1 line-clamp-2 bg-slate-50 p-2 rounded-lg">
+                          {rule.replyMessage}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center space-x-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleToggleRule(rule.id, rule.isEnabled)}
+                          className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                            rule.isEnabled
+                              ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                              : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                          }`}
+                        >
+                          {rule.isEnabled ? "Bật" : "Tắt"}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteRule(rule.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Settings Tab */
+            config && (
+              <form onSubmit={handleUpdateSettings} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Độ trễ gõ phím tối thiểu (ms)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={10000}
+                      value={config.delayMinMs}
+                      onChange={(e) =>
+                        setConfig({ ...config, delayMinMs: parseInt(e.target.value, 10) || 0 })
+                      }
+                      className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Giả lập thời gian suy nghĩ/gõ phím (mặc định 1000ms)
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Độ trễ gõ phím tối đa (ms)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={30000}
+                      value={config.delayMaxMs}
+                      onChange={(e) =>
+                        setConfig({ ...config, delayMaxMs: parseInt(e.target.value, 10) || 0 })
+                      }
+                      className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Độ trễ tối đa trước khi gửi (mặc định 3000ms)
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Giới hạn phản hồi tối đa (tin / phút)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={300}
+                    value={config.rateLimitPerMinute}
+                    onChange={(e) =>
+                      setConfig({ ...config, rateLimitPerMinute: parseInt(e.target.value, 10) || 30 })
+                    }
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Bảo vệ tài khoản tránh bị Zalo giới hạn tốc độ hoặc khóa tính năng
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 space-y-2">
+                  <label className="flex items-center space-x-2 text-xs text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={config.replyInPrivate}
+                      onChange={(e) => setConfig({ ...config, replyInPrivate: e.target.checked })}
+                      className="rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>Tự động trả lời tin nhắn cá nhân (1-1)</span>
+                  </label>
+
+                  <label className="flex items-center space-x-2 text-xs text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={config.replyInGroup}
+                      onChange={(e) => setConfig({ ...config, replyInGroup: e.target.checked })}
+                      className="rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>Tự động trả lời trong nhóm trò chuyện</span>
+                  </label>
+                </div>
+
+                <div className="pt-4 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-5 py-2.5 rounded-xl font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {isSaving ? "Đang lưu..." : "Lưu cài đặt"}
+                  </button>
+                </div>
+              </form>
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

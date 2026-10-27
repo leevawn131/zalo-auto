@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { logger } from "../../config/logger.js";
+import { autoReplyService } from "../auto-reply/auto-reply.service.js";
 import {
   type IZaloAdapter,
   RealZaloAdapter,
@@ -294,6 +295,13 @@ export class ZaloAuthService {
 
     // Setup listener event hooks
     this.setupListenerHooks(accountId, api, sm);
+
+    // Attach Auto-Reply & Anti-Revoke message listeners
+    try {
+      autoReplyService.attachListeners(accountId, api);
+    } catch (err) {
+      logger.error({ err, accountId }, "Failed to attach AutoReply listeners");
+    }
 
     // Transition to ONLINE
     if (sm.getStatus() !== ZaloAccountStatus.ONLINE) {

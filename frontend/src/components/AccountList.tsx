@@ -42,6 +42,8 @@ interface AccountListProps {
   onDisconnect: (accountId: string) => void;
   onDelete: (accountId: string) => void;
   onReauth: () => void;
+  onOpenConfig: (accountId: string, accountName: string) => void;
+  onOpenLogs: (accountId: string, accountName: string) => void;
 }
 
 export function AccountList({
@@ -50,6 +52,8 @@ export function AccountList({
   onDisconnect,
   onDelete,
   onReauth,
+  onOpenConfig,
+  onOpenLogs,
 }: AccountListProps) {
   if (accounts.length === 0) {
     return (
@@ -149,6 +153,25 @@ export function AccountList({
                 <span className="line-clamp-2">{account.errorReason}</span>
               </div>
             )}
+
+            {/* Quick action badges */}
+            <div className="mt-4 flex items-center space-x-2">
+              <button
+                onClick={() => onOpenConfig(account.id, account.displayName)}
+                className="flex items-center space-x-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-xl border border-slate-200 transition-colors"
+              >
+                <Bot className="w-3.5 h-3.5 text-blue-600" />
+                <span>Từ khóa & Cài đặt</span>
+              </button>
+
+              <button
+                onClick={() => onOpenLogs(account.id, account.displayName)}
+                className="flex items-center space-x-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-xl border border-slate-200 transition-colors"
+              >
+                <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Lịch sử tin nhắn</span>
+              </button>
+            </div>
           </div>
 
           <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">

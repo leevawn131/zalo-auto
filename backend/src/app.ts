@@ -3,6 +3,8 @@ import cors from "cors";
 import { env } from "./config/env.js";
 import { createUserAuthController } from "./modules/auth/user-auth.controller.js";
 import { createZaloAuthController } from "./modules/zalo-auth/zalo-auth.controller.js";
+import { createAutoReplyController } from "./modules/auto-reply/auto-reply.controller.js";
+import { createBillingController } from "./modules/billing/billing.controller.js";
 
 export function createApp() {
   const app = express();
@@ -26,6 +28,12 @@ export function createApp() {
 
   // Mount Zalo Auth & Session routes
   app.use("/api/zalo", createZaloAuthController());
+
+  // Mount Auto-Reply & Bot Config routes
+  app.use("/api/zalo", createAutoReplyController());
+
+  // Mount SePay & Billing routes
+  app.use("/api/billing", createBillingController());
 
   return app;
 }
