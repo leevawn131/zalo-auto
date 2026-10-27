@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String               @id @default(cuid())
+  email        String               @unique
+  passwordHash String
+  name         String?
+  role         String               @default("USER")
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  accounts     ZaloAccount[]
+  subscriptions Subscription[]
+  transactions PaymentTransaction[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model ZaloAccount {
+  id          String            @id @default(cuid())
+  userId      String
+  zaloId      String            @unique
+  displayName String
+  avatar      String?
+  status      String            @default("DISCONNECTED")
+  lastSeenAt  DateTime?
+  errorReason String?
+  proxy       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session     ZaloSession?
+  botConfig   BotConfiguration?
+  messages    MessageEvent[]
+
+  @@index([userId])
+  @@map("zalo_accounts")
+}
+
+model ZaloSession {
+  id             String      @id @default(cuid())
+  accountId      String      @unique
+  encryptedData  String
+  iv             String
+  authTag        String
+  keyVersion     String      @default("v1")
+  isValid        Boolean     @default(true)
+  lastVerifiedAt DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  account        ZaloAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("zalo_sessions")
+}
+
+model BotConfiguration {
+  id                 String           @id @default(cuid())
+  accountId          String           @unique
+  isEnabled          Boolean          @default(false)
+  rateLimitPerMinute Int              @default(30)
+  delayMinMs         Int              @default(1000)
+  delayMaxMs         Int              @default(3000)
+  replySelf          Boolean          @default(false)
+  replyInGroup       Boolean          @default(false)
+  replyInPrivate     Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  account            ZaloAccount      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  rules              AutoReplyRule[]
+
+  @@map("bot_configurations")
+}
+
+model AutoReplyRule {
+  id           String           @id @default(cuid())
+  botConfigId  String
+  keyword      String
+  matchType    String           @default("CONTAINS") // EXACT, CONTAINS, REGEX
+  replyMessage String
+  isEnabled    Boolean          @default(true)
+  priority     Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  botConfig    BotConfiguration @relation(fields: [botConfigId], references: [id], onDelete: Cascade)
+
+  @@index([botConfigId])
+  @@map("auto_reply_rules")
+}
+
+model MessageEvent {
+  id         String      @id @default(cuid())
+  accountId  String
+  threadId   String
+  threadType String      // USER, GROUP
+  msgId      String
+  cliMsgId   String?
+  senderUid  String
+  senderName String?
+  content    String
+  isSelf     Boolean     @default(false)
+  isRevoked  Boolean     @default(false)
+  revokedAt  DateTime?
+  rawPayload String?
+  createdAt  DateTime    @default(now())
+  account    ZaloAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, threadId])
+  @@index([accountId, msgId])
+  @@map("message_events")
+}
+
+model Subscription {
+  id           String               @id @default(cuid())
+  userId       String
+  planCode     String               @default("BASIC")
+  status       String               @default("ACTIVE") // ACTIVE, EXPIRED, CANCELLED
+  startsAt     DateTime             @default(now())
+  expiresAt    DateTime
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions PaymentTransaction[]
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+model PaymentTransaction {
+  id             String        @id @default(cuid())
+  userId         String
+  subscriptionId String?
+  paymentCode    String        @unique
+  amount         Int
+  provider       String        @default("SEPAY")
+  referenceCode  String?       @unique
+  status         String        @default("PENDING") // PENDING, PAID, FAILED, EXPIRED
+  webhookPayload String?
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([paymentCode])
+  @@map("payment_transactions")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  ipAddress String?
+  userAgent String?
+  details   String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("audit_logs")
+}

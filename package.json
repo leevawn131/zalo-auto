@@ -1,0 +1,17 @@
+{
+  "name": "zalo-auto-reply-saas",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm --workspace=backend run dev",
+    "dev:frontend": "npm --workspace=frontend run dev",
+    "build:backend": "npm --workspace=backend run build",
+    "build:frontend": "npm --workspace=frontend run build",
+    "test:backend": "npm --workspace=backend run test",
+    "test": "npm --workspace=backend run test"
+  }
+}
