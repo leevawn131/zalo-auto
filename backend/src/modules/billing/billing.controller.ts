@@ -71,10 +71,15 @@ export function createBillingController(): Router {
         ? Math.ceil((subscription.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
         : 0;
 
+      const maxBots = isActive ? await sePayService.getUserMaxBots(userId) : 0;
+      const currentCount = await prisma.zaloAccount.count({ where: { userId } });
+
       res.json({
         subscription,
         isActive,
         daysRemaining,
+        maxBots,
+        currentCount,
       });
     } catch (err) {
       logger.error({ err }, "Failed to fetch user subscription");

@@ -1,6 +1,7 @@
 export enum SubscriptionPlanCode {
-  PRO_MONTHLY = "PRO_MONTHLY",
-  PRO_YEARLY = "PRO_YEARLY",
+  STARTER_2 = "STARTER_2",
+  STANDARD_5 = "STANDARD_5",
+  PRO_9 = "PRO_9",
 }
 
 export interface PlanDetail {

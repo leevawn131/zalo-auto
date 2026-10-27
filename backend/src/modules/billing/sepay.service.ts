@@ -9,21 +9,29 @@ import {
 } from "./billing.types.js";
 
 export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanCode, PlanDetail> = {
-  [SubscriptionPlanCode.PRO_MONTHLY]: {
-    code: SubscriptionPlanCode.PRO_MONTHLY,
-    name: "Gói Chuyên Nghiệp Tháng",
-    price: 99000,
+  [SubscriptionPlanCode.STARTER_2]: {
+    code: SubscriptionPlanCode.STARTER_2,
+    name: "Gói 2 Tài Khoản",
+    price: 100000,
+    durationDays: 30,
+    maxBots: 2,
+    description: "Chạy đồng thời tối đa 2 tài khoản Zalo, auto-reply không giới hạn",
+  },
+  [SubscriptionPlanCode.STANDARD_5]: {
+    code: SubscriptionPlanCode.STANDARD_5,
+    name: "Gói 5 Tài Khoản",
+    price: 550000,
     durationDays: 30,
     maxBots: 5,
     description: "Chạy đồng thời tối đa 5 tài khoản Zalo, auto-reply không giới hạn",
   },
-  [SubscriptionPlanCode.PRO_YEARLY]: {
-    code: SubscriptionPlanCode.PRO_YEARLY,
-    name: "Gói Chuyên Nghiệp Năm",
-    price: 990000,
-    durationDays: 365,
-    maxBots: 10,
-    description: "Tiết kiệm 2 tháng, chạy đồng thời tối đa 10 tài khoản Zalo",
+  [SubscriptionPlanCode.PRO_9]: {
+    code: SubscriptionPlanCode.PRO_9,
+    name: "Gói 9 Tài Khoản",
+    price: 1100000,
+    durationDays: 30,
+    maxBots: 9,
+    description: "Chạy đồng thời tối đa 9 tài khoản Zalo cho doanh nghiệp / đội nhóm",
   },
 };
 
@@ -138,11 +146,12 @@ export class SePayService {
     return await prisma.$transaction(async (tx) => {
       // Determine plan based on amount paid
       let durationDays = 30;
-      let planCode = "PRO_MONTHLY";
+      let planCode: string = SubscriptionPlanCode.STARTER_2;
 
-      if (transaction.amount >= 990000) {
-        durationDays = 365;
-        planCode = "PRO_YEARLY";
+      if (transaction.amount >= 1100000) {
+        planCode = SubscriptionPlanCode.PRO_9;
+      } else if (transaction.amount >= 550000) {
+        planCode = SubscriptionPlanCode.STANDARD_5;
       }
 
       // Check current subscription
@@ -217,6 +226,62 @@ export class SePayService {
     });
 
     return !!subscription;
+  }
+
+  /**
+   * Get maximum allowed bots for user's active subscription
+   */
+  public async getUserMaxBots(userId: string): Promise<number> {
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: "ACTIVE",
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!subscription) return 0;
+    const plan = SUBSCRIPTION_PLANS[subscription.planCode as SubscriptionPlanCode];
+    return plan?.maxBots || 2;
+  }
+
+  /**
+   * Check if user is allowed to add a new account based on their plan limit
+   */
+  public async canUserAddAccount(userId: string): Promise<{
+    allowed: boolean;
+    currentCount: number;
+    maxBots: number;
+    reason?: string;
+  }> {
+    const maxBots = await this.getUserMaxBots(userId);
+    if (maxBots <= 0) {
+      return {
+        allowed: false,
+        currentCount: 0,
+        maxBots: 0,
+        reason: "Gói thuê bao chưa được kích hoạt hoặc đã hết hạn",
+      };
+    }
+
+    const currentCount = await prisma.zaloAccount.count({
+      where: { userId },
+    });
+
+    if (currentCount >= maxBots) {
+      return {
+        allowed: false,
+        currentCount,
+        maxBots,
+        reason: `Bạn đã đạt giới hạn tối đa ${maxBots} tài khoản của gói hiện tại. Vui lòng nâng cấp gói cao hơn để thêm tài khoản mới.`,
+      };
+    }
+
+    return {
+      allowed: true,
+      currentCount,
+      maxBots,
+    };
   }
 }
 

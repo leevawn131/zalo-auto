@@ -377,11 +377,12 @@ export default function HomePage() {
                 <h2 className="text-xl font-bold text-slate-800">Tài khoản Zalo kết nối</h2>
                 <div className="flex items-center space-x-3 mt-1 text-xs text-slate-500">
                   <span>
-                    Tổng cộng: <strong className="text-slate-700">{accounts.length}</strong> tài khoản
+                    Đang kết nối: <strong className="text-slate-800">{accounts.length}</strong> /{" "}
+                    <strong className="text-blue-600">{subscription?.maxBots || 0}</strong> tài khoản cho phép
                   </span>
                   <span>•</span>
                   <span className="text-emerald-600 font-semibold">
-                    {accounts.filter((a) => a.status === "ONLINE").length} đang hoạt động
+                    {accounts.filter((a) => a.status === "ONLINE").length} đang trực tuyến
                   </span>
                 </div>
               </div>
@@ -398,7 +399,7 @@ export default function HomePage() {
                   <Sparkles className="w-4 h-4" />
                   <span>
                     {subscription?.isActive
-                      ? `Gói thuê bao (${subscription.daysRemaining} ngày)`
+                      ? `Gói thuê bao (${subscription.daysRemaining} ngày - Tối đa ${subscription.maxBots} acc)`
                       : "Thanh toán gói để sử dụng"}
                   </span>
                 </button>
@@ -406,6 +407,11 @@ export default function HomePage() {
                 <button
                   onClick={() => {
                     if (!subscription?.isActive) {
+                      setIsSubModalOpen(true);
+                      return;
+                    }
+                    if (accounts.length >= (subscription?.maxBots || 0)) {
+                      alert(`Bạn đã đạt giới hạn tối đa ${subscription?.maxBots} tài khoản của gói hiện tại. Vui lòng nâng cấp gói cao hơn để thêm tài khoản mới!`);
                       setIsSubModalOpen(true);
                       return;
                     }

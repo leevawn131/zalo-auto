@@ -63,6 +63,18 @@ export class ZaloAuthGateway {
             return;
           }
 
+          // Check max bots limit
+          const limitCheck = await sePayService.canUserAddAccount(userId);
+          if (!limitCheck.allowed) {
+            socket.emit("subscription_required", {
+              message: limitCheck.reason,
+            });
+            socket.emit("qr_error", {
+              message: limitCheck.reason,
+            });
+            return;
+          }
+
           logger.info({ userId }, "Initiating QR login via gateway");
 
           const { sessionId } = await this.service.startQRLogin(userId, (event: QREventData) => {

@@ -1,6 +1,7 @@
 import { Router, type Response } from "express";
 import { requireAuth, type AuthenticatedRequest } from "../../common/middlewares/auth.middleware.js";
 import { requireActiveSubscription } from "../../common/middlewares/subscription.middleware.js";
+import { sePayService } from "../billing/sepay.service.js";
 import { sessionRepository, ZaloSessionRepository } from "./zalo-session.repository.js";
 import { authService, ZaloAuthService } from "./zalo-auth.service.js";
 import { logger } from "../../config/logger.js";
@@ -71,6 +72,19 @@ export function createZaloAuthController(
   router.post("/accounts/qr/start", requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.userId!;
+
+      // Enforce plan max bot accounts limit
+      const limitCheck = await sePayService.canUserAddAccount(userId);
+      if (!limitCheck.allowed) {
+        res.status(403).json({
+          error: "MAX_BOTS_EXCEEDED",
+          message: limitCheck.reason,
+          maxBots: limitCheck.maxBots,
+          currentCount: limitCheck.currentCount,
+        });
+        return;
+      }
+
       const result = await service.startQRLogin(userId);
       res.json({ success: true, sessionId: result.sessionId });
     } catch (err: unknown) {

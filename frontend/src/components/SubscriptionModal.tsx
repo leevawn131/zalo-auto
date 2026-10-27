@@ -46,7 +46,7 @@ export function SubscriptionModal({
 }: SubscriptionModalProps) {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [currentSub, setCurrentSub] = useState<any>(null);
-  const [selectedPlan, setSelectedPlan] = useState<string>("PRO_MONTHLY");
+  const [selectedPlan, setSelectedPlan] = useState<string>("STARTER_2");
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -263,6 +263,11 @@ export function SubscriptionModal({
                           {plan.price.toLocaleString("vi-VN")}
                         </span>
                         <span className="text-xs text-slate-500 font-medium"> đ / {plan.durationDays} ngày</span>
+                        <div className="mt-1.5">
+                          <span className="inline-block text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
+                            Chạy tối đa {plan.maxBots} tài khoản Zalo
+                          </span>
+                        </div>
                       </div>
 
                       <p className="text-xs text-slate-500">{plan.description}</p>

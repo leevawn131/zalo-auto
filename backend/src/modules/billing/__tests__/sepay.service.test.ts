@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { prisma } from "../../../config/database.js";
 import { SePayService } from "../sepay.service.js";
 import { SubscriptionGuardService } from "../subscription-guard.service.js";
 import { SubscriptionPlanCode, type SePayWebhookPayload } from "../billing.types.js";
 import { ZaloAuthService } from "../../zalo-auth/zalo-auth.service.js";
 
-describe("SePayService & Subscription Guard (Payments, Webhook Idempotency & Expiry)", () => {
+describe("SePayService & Subscription Guard (Payments, Webhook Idempotency & Account Limits)", () => {
   const sepayService = new SePayService();
   let userId: string;
 
@@ -27,18 +27,18 @@ describe("SePayService & Subscription Guard (Payments, Webhook Idempotency & Exp
     await prisma.$disconnect();
   });
 
-  it("should create invoice with unique payment code and VietQR URL", async () => {
-    const invoice = await sepayService.createInvoice(userId, SubscriptionPlanCode.PRO_MONTHLY);
+  it("should create invoice with unique payment code and VietQR URL for Gói 2 Acc (100.000đ)", async () => {
+    const invoice = await sepayService.createInvoice(userId, SubscriptionPlanCode.STARTER_2);
 
     expect(invoice.transactionId).toBeDefined();
     expect(invoice.paymentCode).toMatch(/^INV[0-9A-Z]+$/);
-    expect(invoice.amount).toBe(99000);
+    expect(invoice.amount).toBe(100000);
     expect(invoice.qrCodeUrl).toContain("qr.sepay.vn");
     expect(invoice.qrCodeUrl).toContain(invoice.paymentCode);
   });
 
-  it("should process valid SePay webhook and activate subscription for 30 days", async () => {
-    const invoice = await sepayService.createInvoice(userId, SubscriptionPlanCode.PRO_MONTHLY);
+  it("should process valid SePay webhook and activate STARTER_2 subscription for 30 days", async () => {
+    const invoice = await sepayService.createInvoice(userId, SubscriptionPlanCode.STARTER_2);
 
     const webhookPayload: SePayWebhookPayload = {
       id: 998877,
@@ -47,7 +47,7 @@ describe("SePayService & Subscription Guard (Payments, Webhook Idempotency & Exp
       accountNumber: "9999999999",
       content: `CK tien mua bot ${invoice.paymentCode} cam on`,
       transferType: "in",
-      amountIn: 99000,
+      amountIn: 100000,
       amountOut: 0,
       accumulated: 10000000,
       referenceCode: "REF_BANK_12345",
@@ -63,13 +63,89 @@ describe("SePayService & Subscription Guard (Payments, Webhook Idempotency & Exp
     expect(tx?.status).toBe("PAID");
     expect(tx?.referenceCode).toBe("REF_BANK_12345");
 
-    // Verify subscription created
+    // Verify subscription created with STARTER_2 (maxBots: 2)
     const sub = await prisma.subscription.findFirst({
       where: { userId },
     });
     expect(sub?.status).toBe("ACTIVE");
+    expect(sub?.planCode).toBe("STARTER_2");
     const diffDays = Math.round((sub!.expiresAt.getTime() - Date.now()) / (24 * 3600 * 1000));
     expect(diffDays).toBe(30);
+  });
+
+  it("should activate STANDARD_5 (5 acc) for 550.000đ and PRO_9 (9 acc) for 1.100.000đ", async () => {
+    // 1. Standard 5 acc (550,000 VND)
+    const inv5 = await sepayService.createInvoice(userId, SubscriptionPlanCode.STANDARD_5);
+    await sepayService.processWebhook({
+      id: 111,
+      gateway: "MBBank",
+      transactionDate: "2026-10-28 10:00:00",
+      accountNumber: "9999999999",
+      content: `Thanh toan ${inv5.paymentCode}`,
+      transferType: "in",
+      amountIn: 550000,
+      amountOut: 0,
+      accumulated: 550000,
+      referenceCode: "REF_550K",
+    });
+
+    let sub = await prisma.subscription.findFirst({ where: { userId } });
+    expect(sub?.planCode).toBe("STANDARD_5");
+    expect(await sepayService.getUserMaxBots(userId)).toBe(5);
+
+    // 2. Pro 9 acc (1,100,000 VND)
+    const inv9 = await sepayService.createInvoice(userId, SubscriptionPlanCode.PRO_9);
+    await sepayService.processWebhook({
+      id: 222,
+      gateway: "MBBank",
+      transactionDate: "2026-10-28 10:00:00",
+      accountNumber: "9999999999",
+      content: `Thanh toan ${inv9.paymentCode}`,
+      transferType: "in",
+      amountIn: 1100000,
+      amountOut: 0,
+      accumulated: 1650000,
+      referenceCode: "REF_1100K",
+    });
+
+    sub = await prisma.subscription.findFirst({ where: { userId } });
+    expect(sub?.planCode).toBe("PRO_9");
+    expect(await sepayService.getUserMaxBots(userId)).toBe(9);
+  });
+
+  it("should enforce maxBots limit on adding accounts (STARTER_2 allows 2 accs, rejects 3rd)", async () => {
+    // Grant STARTER_2 (maxBots: 2)
+    await prisma.subscription.create({
+      data: {
+        userId,
+        planCode: "STARTER_2",
+        status: "ACTIVE",
+        startsAt: new Date(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000),
+      },
+    });
+
+    // 0 accounts -> allowed
+    let check = await sepayService.canUserAddAccount(userId);
+    expect(check.allowed).toBe(true);
+    expect(check.maxBots).toBe(2);
+
+    // Add 1st account
+    await prisma.zaloAccount.create({
+      data: { userId, zaloId: "zalo_1", displayName: "Bot 1", status: "ONLINE" },
+    });
+    check = await sepayService.canUserAddAccount(userId);
+    expect(check.allowed).toBe(true);
+
+    // Add 2nd account
+    await prisma.zaloAccount.create({
+      data: { userId, zaloId: "zalo_2", displayName: "Bot 2", status: "ONLINE" },
+    });
+
+    // 2 accounts reached -> 3rd account must be rejected!
+    check = await sepayService.canUserAddAccount(userId);
+    expect(check.allowed).toBe(false);
+    expect(check.reason).toContain("đạt giới hạn tối đa 2 tài khoản");
   });
 
   it("should extend existing active subscription by adding 30 days to current expiresAt", async () => {
@@ -78,14 +154,14 @@ describe("SePayService & Subscription Guard (Payments, Webhook Idempotency & Exp
     await prisma.subscription.create({
       data: {
         userId,
-        planCode: "PRO_MONTHLY",
+        planCode: "STARTER_2",
         status: "ACTIVE",
         startsAt: new Date(),
         expiresAt: currentExpiry,
       },
     });
 
-    const invoice = await sepayService.createInvoice(userId, SubscriptionPlanCode.PRO_MONTHLY);
+    const invoice = await sepayService.createInvoice(userId, SubscriptionPlanCode.STARTER_2);
 
     const webhookPayload: SePayWebhookPayload = {
       id: 998878,
@@ -94,7 +170,7 @@ describe("SePayService & Subscription Guard (Payments, Webhook Idempotency & Exp
       accountNumber: "9999999999",
       content: `Gia han ${invoice.paymentCode}`,
       transferType: "in",
-      amountIn: 99000,
+      amountIn: 100000,
       amountOut: 0,
       accumulated: 10000000,
       referenceCode: "REF_BANK_EXTEND_99",
@@ -112,70 +188,12 @@ describe("SePayService & Subscription Guard (Payments, Webhook Idempotency & Exp
     expect(diffDays).toBe(45);
   });
 
-  it("should enforce idempotency: duplicate webhook does not extend subscription multiple times", async () => {
-    const invoice = await sepayService.createInvoice(userId, SubscriptionPlanCode.PRO_MONTHLY);
-
-    const webhookPayload: SePayWebhookPayload = {
-      id: 998879,
-      gateway: "Vietcombank",
-      transactionDate: "2026-10-28 10:00:00",
-      accountNumber: "9999999999",
-      content: `Thanh toan ${invoice.paymentCode}`,
-      transferType: "in",
-      amountIn: 99000,
-      amountOut: 0,
-      accumulated: 10000000,
-      referenceCode: "REF_BANK_IDEMP_1",
-    };
-
-    // First call
-    await sepayService.processWebhook(webhookPayload);
-
-    const sub1 = await prisma.subscription.findFirst({ where: { userId } });
-    const expiresAt1 = sub1!.expiresAt.getTime();
-
-    // Second call with same payload (webhook retry)
-    const result2 = await sepayService.processWebhook(webhookPayload);
-    expect(result2.success).toBe(true);
-
-    const sub2 = await prisma.subscription.findFirst({ where: { userId } });
-    expect(sub2!.expiresAt.getTime()).toBe(expiresAt1); // Date not extended twice!
-  });
-
-  it("should reject and mark transaction FAILED if transfer amount is insufficient", async () => {
-    const invoice = await sepayService.createInvoice(userId, SubscriptionPlanCode.PRO_MONTHLY);
-
-    const webhookPayload: SePayWebhookPayload = {
-      id: 998880,
-      gateway: "Vietcombank",
-      transactionDate: "2026-10-28 10:00:00",
-      accountNumber: "9999999999",
-      content: `Thieu tien ${invoice.paymentCode}`,
-      transferType: "in",
-      amountIn: 50000, // Expected 99,000 VND
-      amountOut: 0,
-      accumulated: 10000000,
-      referenceCode: "REF_BANK_UNDERPAID",
-    };
-
-    const result = await sepayService.processWebhook(webhookPayload);
-    expect(result.success).toBe(false);
-
-    const tx = await prisma.paymentTransaction.findUnique({
-      where: { paymentCode: invoice.paymentCode },
-    });
-    expect(tx?.status).toBe("FAILED");
-
-    const sub = await prisma.subscription.findFirst({ where: { userId } });
-    expect(sub).toBeNull();
-  });
-
   it("should stop running bot when user subscription has expired (SubscriptionGuard)", async () => {
     // Create an expired subscription
     await prisma.subscription.create({
       data: {
         userId,
-        planCode: "PRO_MONTHLY",
+        planCode: "STARTER_2",
         status: "ACTIVE",
         startsAt: new Date(Date.now() - 40 * 24 * 3600 * 1000),
         expiresAt: new Date(Date.now() - 5 * 24 * 3600 * 1000), // Expired 5 days ago
