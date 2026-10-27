@@ -7,7 +7,7 @@ import { AccountList, type ZaloAccountItem } from "@/components/AccountList";
 import { BotConfigModal } from "@/components/BotConfigModal";
 import { MessageLogsModal } from "@/components/MessageLogsModal";
 import { SubscriptionModal } from "@/components/SubscriptionModal";
-import { fetchWithAuth, getStoredToken, setStoredToken, removeStoredToken } from "@/lib/api";
+import { fetchWithAuth, getStoredToken, setStoredToken, removeStoredToken, API_URL } from "@/lib/api";
 import { connectSocket } from "@/lib/socket";
 import {
   Plus,
@@ -124,7 +124,7 @@ export default function HomePage() {
     const body = authMode === "login" ? { email, password } : { email, password, name };
 
     try {
-      const res = await fetch(`http://localhost:4000${endpoint}`, {
+      const res = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

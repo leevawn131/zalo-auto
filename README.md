@@ -103,7 +103,7 @@ docker-compose up -d
 
 File `backend/.env`:
 ```env
-PORT=4000
+PORT=4001
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/zalo_auto?schema=public"
 REDIS_URL="redis://localhost:6379"
 JWT_SECRET="zalo-saas-jwt-secret-very-secure-32chars-min"
@@ -145,7 +145,7 @@ Toàn bộ **38 test cases** bao phủ:
 Terminal 1 - Chạy Backend API & Worker:
 ```bash
 npm run dev:backend
-# Chạy tại http://localhost:4000
+# Chạy tại http://localhost:4001
 ```
 
 Terminal 2 - Chạy Frontend Dashboard:
