@@ -1,6 +1,7 @@
 import { Router, type Response } from "express";
 import { z } from "zod";
 import { requireAuth, type AuthenticatedRequest } from "../../common/middlewares/auth.middleware.js";
+import { requireActiveSubscription } from "../../common/middlewares/subscription.middleware.js";
 import { prisma } from "../../config/database.js";
 import { messageLogger } from "./message-logger.service.js";
 import { TenantAccessDeniedError } from "../zalo-auth/zalo-auth.errors.js";
@@ -83,7 +84,7 @@ export function createAutoReplyController(): Router {
   /**
    * PUT /api/zalo/accounts/:id/bot-config
    */
-  router.put("/accounts/:id/bot-config", async (req: AuthenticatedRequest, res: Response) => {
+  router.put("/accounts/:id/bot-config", requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.userId!;
       const accountId = req.params.id;
@@ -122,7 +123,7 @@ export function createAutoReplyController(): Router {
   /**
    * POST /api/zalo/accounts/:id/rules
    */
-  router.post("/accounts/:id/rules", async (req: AuthenticatedRequest, res: Response) => {
+  router.post("/accounts/:id/rules", requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.userId!;
       const accountId = req.params.id;
@@ -169,7 +170,7 @@ export function createAutoReplyController(): Router {
   /**
    * PUT /api/zalo/accounts/:id/rules/:ruleId
    */
-  router.put("/accounts/:id/rules/:ruleId", async (req: AuthenticatedRequest, res: Response) => {
+  router.put("/accounts/:id/rules/:ruleId", requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.userId!;
       const { id: accountId, ruleId } = req.params;
@@ -203,7 +204,7 @@ export function createAutoReplyController(): Router {
   /**
    * DELETE /api/zalo/accounts/:id/rules/:ruleId
    */
-  router.delete("/accounts/:id/rules/:ruleId", async (req: AuthenticatedRequest, res: Response) => {
+  router.delete("/accounts/:id/rules/:ruleId", requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.userId!;
       const { id: accountId, ruleId } = req.params;

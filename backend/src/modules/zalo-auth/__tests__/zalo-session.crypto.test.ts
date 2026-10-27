@@ -54,11 +54,10 @@ describe("ZaloSessionCrypto (AES-256-GCM)", () => {
   it("should detect tampered ciphertext and throw ZaloSessionCorruptedError", () => {
     const encrypted = cryptoInstance.encrypt(sampleCredentials);
 
-    // Tamper with ciphertext by altering a base64 character
-    const tamperedData =
-      encrypted.encryptedData.slice(0, -2) +
-      (encrypted.encryptedData.endsWith("A") ? "B" : "A") +
-      encrypted.encryptedData.slice(-1);
+    // Tamper with ciphertext by altering characters at the beginning
+    const firstChar = encrypted.encryptedData[0];
+    const tamperedChar = firstChar === "A" ? "B" : "A";
+    const tamperedData = tamperedChar + encrypted.encryptedData.slice(1);
 
     expect(() =>
       cryptoInstance.decrypt({

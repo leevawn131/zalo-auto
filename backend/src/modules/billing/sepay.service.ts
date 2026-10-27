@@ -9,14 +9,6 @@ import {
 } from "./billing.types.js";
 
 export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanCode, PlanDetail> = {
-  [SubscriptionPlanCode.FREE_TRIAL]: {
-    code: SubscriptionPlanCode.FREE_TRIAL,
-    name: "Gói Dùng Thử",
-    price: 0,
-    durationDays: 7,
-    maxBots: 1,
-    description: "Trải nghiệm đầy đủ tính năng trong 7 ngày",
-  },
   [SubscriptionPlanCode.PRO_MONTHLY]: {
     code: SubscriptionPlanCode.PRO_MONTHLY,
     name: "Gói Chuyên Nghiệp Tháng",

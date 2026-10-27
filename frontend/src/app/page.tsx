@@ -60,6 +60,17 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    const handleSubRequired = () => {
+      setIsSubModalOpen(true);
+    };
+
+    window.addEventListener("subscription_required", handleSubRequired);
+    return () => {
+      window.removeEventListener("subscription_required", handleSubRequired);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!token) return;
 
     const socket = connectSocket();
@@ -70,8 +81,13 @@ export default function HomePage() {
       );
     });
 
+    socket.on("subscription_required", () => {
+      setIsSubModalOpen(true);
+    });
+
     return () => {
       socket.off("account_status_changed");
+      socket.off("subscription_required");
     };
   }, [token]);
 
@@ -329,6 +345,32 @@ export default function HomePage() {
         ) : (
           /* Dashboard Screen */
           <div className="space-y-6">
+            {/* Warning Banner if Subscription is NOT active */}
+            {!subscription?.isActive && (
+              <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-orange-500/10 border-2 border-amber-400 p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-pulse">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2.5 bg-amber-500 text-white rounded-2xl flex-shrink-0 shadow-md shadow-amber-500/30">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-sm sm:text-base">
+                      Tài khoản chưa kích hoạt hoặc đã hết hạn gói thuê bao!
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      Tất cả tính năng kết nối bot, trả lời tự động và tùy chỉnh từ khóa đang tạm ngưng. Vui lòng thanh toán để mở khóa.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsSubModalOpen(true)}
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95 flex-shrink-0"
+                >
+                  Nâng cấp / Gia hạn ngay &rarr;
+                </button>
+              </div>
+            )}
+
             {/* Action Bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
               <div>
@@ -347,18 +389,28 @@ export default function HomePage() {
               <div className="flex items-center space-x-3 w-full sm:w-auto">
                 <button
                   onClick={() => setIsSubModalOpen(true)}
-                  className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-2xl text-xs font-semibold bg-gradient-to-r from-amber-50 to-orange-50 text-amber-900 border border-amber-200 hover:shadow-sm transition-all"
+                  className={`flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-2xl text-xs font-semibold transition-all ${
+                    subscription?.isActive
+                      ? "bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-900 border border-emerald-200"
+                      : "bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md shadow-amber-500/20 animate-bounce"
+                  }`}
                 >
-                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <Sparkles className="w-4 h-4" />
                   <span>
                     {subscription?.isActive
                       ? `Gói thuê bao (${subscription.daysRemaining} ngày)`
-                      : "Gia hạn / Nâng cấp SePay"}
+                      : "Thanh toán gói để sử dụng"}
                   </span>
                 </button>
 
                 <button
-                  onClick={() => setIsQrModalOpen(true)}
+                  onClick={() => {
+                    if (!subscription?.isActive) {
+                      setIsSubModalOpen(true);
+                      return;
+                    }
+                    setIsQrModalOpen(true);
+                  }}
                   className="flex-1 sm:flex-none flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-2xl text-xs font-semibold transition-all shadow-md shadow-blue-500/20 active:scale-95"
                 >
                   <Plus className="w-4 h-4" />
@@ -370,12 +422,32 @@ export default function HomePage() {
             {/* Account List */}
             <AccountList
               accounts={accounts}
+              subscriptionActive={subscription?.isActive}
               onReconnect={handleReconnect}
               onDisconnect={handleDisconnect}
               onDelete={handleDelete}
-              onReauth={() => setIsQrModalOpen(true)}
-              onOpenConfig={(id, name) => setConfigModalAccount({ id, name })}
-              onOpenLogs={(id, name) => setLogsModalAccount({ id, name })}
+              onReauth={() => {
+                if (!subscription?.isActive) {
+                  setIsSubModalOpen(true);
+                  return;
+                }
+                setIsQrModalOpen(true);
+              }}
+              onOpenConfig={(id, name) => {
+                if (!subscription?.isActive) {
+                  setIsSubModalOpen(true);
+                  return;
+                }
+                setConfigModalAccount({ id, name });
+              }}
+              onOpenLogs={(id, name) => {
+                if (!subscription?.isActive) {
+                  setIsSubModalOpen(true);
+                  return;
+                }
+                setLogsModalAccount({ id, name });
+              }}
+              onRequireSubscription={() => setIsSubModalOpen(true)}
             />
           </div>
         )}

@@ -1,5 +1,4 @@
 export enum SubscriptionPlanCode {
-  FREE_TRIAL = "FREE_TRIAL",
   PRO_MONTHLY = "PRO_MONTHLY",
   PRO_YEARLY = "PRO_YEARLY",
 }
@@ -20,7 +19,7 @@ export interface SePayWebhookPayload {
   accountNumber: string;
   subAccount?: string | null;
   code?: string | null;
-  content: string; // payment message containing paymentCode, e.g. "SEPAY_INV_123456"
+  content: string; // payment message containing paymentCode, e.g. "INV123456"
   transferType: "in" | "out";
   description?: string;
   amountIn: number;

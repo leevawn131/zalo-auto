@@ -38,5 +38,18 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     }
   }
 
+  if (response.status === 402) {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("subscription_required", {
+          detail: {
+            message:
+              "Tính năng này yêu cầu gói thuê bao đang hoạt động. Vui lòng nâng cấp/gia hạn để tiếp tục.",
+          },
+        })
+      );
+    }
+  }
+
   return response;
 }

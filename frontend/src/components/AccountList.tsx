@@ -38,22 +38,26 @@ export interface ZaloAccountItem {
 
 interface AccountListProps {
   accounts: ZaloAccountItem[];
+  subscriptionActive?: boolean;
   onReconnect: (accountId: string) => void;
   onDisconnect: (accountId: string) => void;
   onDelete: (accountId: string) => void;
   onReauth: () => void;
   onOpenConfig: (accountId: string, accountName: string) => void;
   onOpenLogs: (accountId: string, accountName: string) => void;
+  onRequireSubscription?: () => void;
 }
 
 export function AccountList({
   accounts,
+  subscriptionActive = false,
   onReconnect,
   onDisconnect,
   onDelete,
   onReauth,
   onOpenConfig,
   onOpenLogs,
+  onRequireSubscription,
 }: AccountListProps) {
   if (accounts.length === 0) {
     return (
@@ -157,7 +161,13 @@ export function AccountList({
             {/* Quick action badges */}
             <div className="mt-4 flex items-center space-x-2">
               <button
-                onClick={() => onOpenConfig(account.id, account.displayName)}
+                onClick={() => {
+                  if (!subscriptionActive) {
+                    onRequireSubscription?.();
+                    return;
+                  }
+                  onOpenConfig(account.id, account.displayName);
+                }}
                 className="flex items-center space-x-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-xl border border-slate-200 transition-colors"
               >
                 <Bot className="w-3.5 h-3.5 text-blue-600" />
@@ -165,7 +175,13 @@ export function AccountList({
               </button>
 
               <button
-                onClick={() => onOpenLogs(account.id, account.displayName)}
+                onClick={() => {
+                  if (!subscriptionActive) {
+                    onRequireSubscription?.();
+                    return;
+                  }
+                  onOpenLogs(account.id, account.displayName);
+                }}
                 className="flex items-center space-x-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-xl border border-slate-200 transition-colors"
               >
                 <Clock className="w-3.5 h-3.5 text-indigo-600" />
@@ -178,7 +194,13 @@ export function AccountList({
             <div className="flex items-center space-x-2">
               {account.status === "REAUTH_REQUIRED" ? (
                 <button
-                  onClick={onReauth}
+                  onClick={() => {
+                    if (!subscriptionActive) {
+                      onRequireSubscription?.();
+                      return;
+                    }
+                    onReauth();
+                  }}
                   className="flex items-center space-x-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
                 >
                   <RefreshCw className="w-3 h-3" />
@@ -194,7 +216,13 @@ export function AccountList({
                 </button>
               ) : (
                 <button
-                  onClick={() => onReconnect(account.id)}
+                  onClick={() => {
+                    if (!subscriptionActive) {
+                      onRequireSubscription?.();
+                      return;
+                    }
+                    onReconnect(account.id);
+                  }}
                   className="flex items-center space-x-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
                 >
                   <Play className="w-3 h-3 text-blue-600" />

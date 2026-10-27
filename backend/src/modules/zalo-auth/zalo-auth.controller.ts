@@ -1,5 +1,6 @@
 import { Router, type Response } from "express";
 import { requireAuth, type AuthenticatedRequest } from "../../common/middlewares/auth.middleware.js";
+import { requireActiveSubscription } from "../../common/middlewares/subscription.middleware.js";
 import { sessionRepository, ZaloSessionRepository } from "./zalo-session.repository.js";
 import { authService, ZaloAuthService } from "./zalo-auth.service.js";
 import { logger } from "../../config/logger.js";
@@ -67,7 +68,7 @@ export function createZaloAuthController(
   /**
    * Start a QR code login flow
    */
-  router.post("/accounts/qr/start", async (req: AuthenticatedRequest, res: Response) => {
+  router.post("/accounts/qr/start", requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.userId!;
       const result = await service.startQRLogin(userId);
@@ -81,7 +82,7 @@ export function createZaloAuthController(
   /**
    * Reconnect an existing account using saved encrypted session
    */
-  router.post("/accounts/:id/reconnect", async (req: AuthenticatedRequest, res: Response) => {
+  router.post("/accounts/:id/reconnect", requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.userId!;
       const accountId = req.params.id;

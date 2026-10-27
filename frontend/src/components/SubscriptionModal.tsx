@@ -229,7 +229,12 @@ export function SubscriptionModal({
           ) : (
             /* Plan Cards */
             <div className="space-y-4">
-              <h4 className="text-xs font-semibold text-slate-700">Chọn gói đăng ký</h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-800">Chọn gói thuê bao để kích hoạt</h4>
+                <span className="text-[11px] text-rose-600 font-semibold bg-rose-50 px-2 py-0.5 rounded-full">
+                  Bắt buộc trả phí hàng tháng
+                </span>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {plans

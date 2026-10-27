@@ -4,6 +4,7 @@ import { env } from "../../config/env.js";
 import { logger } from "../../config/logger.js";
 import { authService, ZaloAuthService } from "./zalo-auth.service.js";
 import { sessionRepository, ZaloSessionRepository } from "./zalo-session.repository.js";
+import { sePayService, SePayService } from "../billing/sepay.service.js";
 import type { QREventData } from "./zalo-auth.types.js";
 
 interface AuthenticatedSocket extends Socket {
@@ -51,6 +52,17 @@ export class ZaloAuthGateway {
       // Handle request to start QR login
       socket.on("request_qr_login", async () => {
         try {
+          const isSubActive = await sePayService.isUserSubscriptionActive(userId);
+          if (!isSubActive) {
+            socket.emit("subscription_required", {
+              message: "Gói thuê bao chưa được kích hoạt hoặc đã hết hạn. Vui lòng thanh toán để tiếp tục.",
+            });
+            socket.emit("qr_error", {
+              message: "Gói thuê bao chưa được kích hoạt hoặc đã hết hạn. Vui lòng gia hạn để tiếp tục.",
+            });
+            return;
+          }
+
           logger.info({ userId }, "Initiating QR login via gateway");
 
           const { sessionId } = await this.service.startQRLogin(userId, (event: QREventData) => {
@@ -67,6 +79,19 @@ export class ZaloAuthGateway {
       // Handle request to reconnect an account
       socket.on("request_reconnect", async (data: { accountId: string }) => {
         try {
+          const isSubActive = await sePayService.isUserSubscriptionActive(userId);
+          if (!isSubActive) {
+            socket.emit("subscription_required", {
+              message: "Gói thuê bao chưa được kích hoạt hoặc đã hết hạn. Vui lòng thanh toán để tiếp tục.",
+            });
+            socket.emit("reconnect_result", {
+              accountId: data.accountId,
+              success: false,
+              error: "Gói thuê bao chưa được kích hoạt hoặc đã hết hạn.",
+            });
+            return;
+          }
+
           const success = await this.service.restoreConnection(data.accountId, userId);
           socket.emit("reconnect_result", { accountId: data.accountId, success });
         } catch (error: unknown) {
