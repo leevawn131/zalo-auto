@@ -107,7 +107,7 @@ export function SubscriptionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center space-x-3">
@@ -231,46 +231,50 @@ export function SubscriptionModal({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-slate-800">Chọn gói thuê bao để kích hoạt</h4>
-                <span className="text-[11px] text-rose-600 font-semibold bg-rose-50 px-2 py-0.5 rounded-full">
-                  Bắt buộc trả phí hàng tháng
+                <span className="text-[11px] text-rose-600 font-semibold bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-100">
+                  Thuê bao bắt buộc (Không có dùng thử miễn phí)
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 {plans
                   .filter((p) => p.price > 0)
                   .map((plan) => (
                     <div
                       key={plan.code}
                       onClick={() => setSelectedPlan(plan.code)}
-                      className={`p-5 rounded-2xl border-2 cursor-pointer transition-all ${
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
                         selectedPlan === plan.code
-                          ? "border-blue-600 bg-blue-50/30 shadow-md shadow-blue-500/10"
+                          ? "border-blue-600 bg-blue-50/40 shadow-md shadow-blue-500/10"
                           : "border-slate-200 hover:border-slate-300 bg-white"
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-bold text-sm text-slate-800">{plan.name}</h5>
-                        {selectedPlan === plan.code && (
-                          <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                          </div>
-                        )}
-                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <h5 className="font-bold text-sm text-slate-800">{plan.name}</h5>
+                          {selectedPlan === plan.code && (
+                            <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center flex-shrink-0">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            </div>
+                          )}
+                        </div>
 
-                      <div className="my-3">
-                        <span className="text-2xl font-black text-blue-600">
-                          {plan.price.toLocaleString("vi-VN")}
-                        </span>
-                        <span className="text-xs text-slate-500 font-medium"> đ / {plan.durationDays} ngày</span>
-                        <div className="mt-1.5">
-                          <span className="inline-block text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
-                            Chạy tối đa {plan.maxBots} tài khoản Zalo
+                        <div className="my-2.5">
+                          <span className="text-xl font-black text-blue-600">
+                            {plan.price.toLocaleString("vi-VN")}
                           </span>
+                          <span className="text-xs text-slate-500 font-medium">
+                            {" "}đ / {plan.durationDays === 365 ? "1 năm" : plan.durationDays === 180 ? "6 tháng" : `${plan.durationDays} ngày`}
+                          </span>
+                          <div className="mt-1.5">
+                            <span className="inline-block text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
+                              Tối đa {plan.maxBots} tài khoản
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      <p className="text-xs text-slate-500">{plan.description}</p>
+                      <p className="text-[11px] text-slate-500 leading-relaxed mt-2">{plan.description}</p>
                     </div>
                   ))}
               </div>

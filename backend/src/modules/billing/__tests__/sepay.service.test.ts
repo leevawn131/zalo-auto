@@ -73,9 +73,10 @@ describe("SePayService & Subscription Guard (Payments, Webhook Idempotency & Acc
     expect(diffDays).toBe(30);
   });
 
-  it("should activate STANDARD_5 (5 acc) for 550.000đ and PRO_9 (9 acc) for 1.100.000đ", async () => {
-    // 1. Standard 5 acc (550,000 VND)
+  it("should activate STANDARD_5 (5 acc, 180 days) for 550.000đ and PRO_9 (9 acc, 365 days) for 1.100.000đ", async () => {
+    // 1. Standard 5 acc (550,000 VND -> 180 days / 6 months)
     const inv5 = await sepayService.createInvoice(userId, SubscriptionPlanCode.STANDARD_5);
+    expect(inv5.amount).toBe(550000);
     await sepayService.processWebhook({
       id: 111,
       gateway: "MBBank",
@@ -92,9 +93,15 @@ describe("SePayService & Subscription Guard (Payments, Webhook Idempotency & Acc
     let sub = await prisma.subscription.findFirst({ where: { userId } });
     expect(sub?.planCode).toBe("STANDARD_5");
     expect(await sepayService.getUserMaxBots(userId)).toBe(5);
+    const diffDays5 = Math.round((sub!.expiresAt.getTime() - Date.now()) / (24 * 3600 * 1000));
+    expect(diffDays5).toBe(180);
 
-    // 2. Pro 9 acc (1,100,000 VND)
-    const inv9 = await sepayService.createInvoice(userId, SubscriptionPlanCode.PRO_9);
+    // 2. Pro 9 acc (1,100,000 VND -> 365 days / 1 year)
+    const user2 = await prisma.user.create({
+      data: { email: "user2@example.com", passwordHash: "dummy" },
+    });
+    const inv9 = await sepayService.createInvoice(user2.id, SubscriptionPlanCode.PRO_9);
+    expect(inv9.amount).toBe(1100000);
     await sepayService.processWebhook({
       id: 222,
       gateway: "MBBank",
@@ -108,9 +115,11 @@ describe("SePayService & Subscription Guard (Payments, Webhook Idempotency & Acc
       referenceCode: "REF_1100K",
     });
 
-    sub = await prisma.subscription.findFirst({ where: { userId } });
-    expect(sub?.planCode).toBe("PRO_9");
-    expect(await sepayService.getUserMaxBots(userId)).toBe(9);
+    const sub9 = await prisma.subscription.findFirst({ where: { userId: user2.id } });
+    expect(sub9?.planCode).toBe("PRO_9");
+    expect(await sepayService.getUserMaxBots(user2.id)).toBe(9);
+    const diffDays9 = Math.round((sub9!.expiresAt.getTime() - Date.now()) / (24 * 3600 * 1000));
+    expect(diffDays9).toBe(365);
   });
 
   it("should enforce maxBots limit on adding accounts (STARTER_2 allows 2 accs, rejects 3rd)", async () => {

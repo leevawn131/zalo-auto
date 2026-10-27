@@ -15,23 +15,23 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanCode, PlanDetail> = {
     price: 100000,
     durationDays: 30,
     maxBots: 2,
-    description: "Chạy đồng thời tối đa 2 tài khoản Zalo, auto-reply không giới hạn",
+    description: "Chạy đồng thời tối đa 2 tài khoản Zalo trong 30 ngày (1 tháng)",
   },
   [SubscriptionPlanCode.STANDARD_5]: {
     code: SubscriptionPlanCode.STANDARD_5,
     name: "Gói 5 Tài Khoản",
     price: 550000,
-    durationDays: 30,
+    durationDays: 180,
     maxBots: 5,
-    description: "Chạy đồng thời tối đa 5 tài khoản Zalo, auto-reply không giới hạn",
+    description: "Chạy đồng thời tối đa 5 tài khoản Zalo trong 180 ngày (6 tháng)",
   },
   [SubscriptionPlanCode.PRO_9]: {
     code: SubscriptionPlanCode.PRO_9,
     name: "Gói 9 Tài Khoản",
     price: 1100000,
-    durationDays: 30,
+    durationDays: 365,
     maxBots: 9,
-    description: "Chạy đồng thời tối đa 9 tài khoản Zalo cho doanh nghiệp / đội nhóm",
+    description: "Chạy đồng thời tối đa 9 tài khoản Zalo trong 365 ngày (1 năm)",
   },
 };
 
@@ -145,7 +145,6 @@ export class SePayService {
     // 7. Atomic transaction: Mark transaction PAID and extend/create subscription
     return await prisma.$transaction(async (tx) => {
       // Determine plan based on amount paid
-      let durationDays = 30;
       let planCode: string = SubscriptionPlanCode.STARTER_2;
 
       if (transaction.amount >= 1100000) {
@@ -153,6 +152,9 @@ export class SePayService {
       } else if (transaction.amount >= 550000) {
         planCode = SubscriptionPlanCode.STANDARD_5;
       }
+
+      const planDetail = SUBSCRIPTION_PLANS[planCode as SubscriptionPlanCode];
+      const durationDays = planDetail ? planDetail.durationDays : 30;
 
       // Check current subscription
       const existingSubscription = await tx.subscription.findFirst({
