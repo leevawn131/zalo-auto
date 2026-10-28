@@ -15,9 +15,9 @@ export function createBillingController(): Router {
   const router = Router();
 
   /**
-   * Public Webhook endpoint for SePay
+   * Public Webhook endpoint for SePay (supports both /webhook and /webhook/sepay)
    */
-  router.post("/webhook/sepay", async (req: Request, res: Response) => {
+  router.post(["/webhook", "/webhook/sepay"], async (req: Request, res: Response) => {
     try {
       // Optional security header check: "Authorization: Apikey <SEPAY_API_KEY>"
       const authHeader = req.headers.authorization;
