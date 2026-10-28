@@ -1,4 +1,9 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001";
+export const API_URL =
+  process.env.NEXT_PUBLIC_API_URL !== undefined
+    ? process.env.NEXT_PUBLIC_API_URL
+    : typeof window !== "undefined"
+    ? ""
+    : "http://localhost:4001";
 
 export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;

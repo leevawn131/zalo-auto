@@ -1,7 +1,12 @@
 import { io, Socket } from "socket.io-client";
 import { getStoredToken } from "./api";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4001";
+const SOCKET_URL =
+  process.env.NEXT_PUBLIC_SOCKET_URL !== undefined
+    ? process.env.NEXT_PUBLIC_SOCKET_URL
+    : typeof window !== "undefined"
+    ? ""
+    : "http://localhost:4001";
 
 let socket: Socket | null = null;
 
