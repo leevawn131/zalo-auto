@@ -14,6 +14,9 @@ COPY frontend/ ./frontend/
 
 WORKDIR /app/frontend
 
+# Ensure public directory exists
+RUN mkdir -p /app/frontend/public
+
 # Build arguments for Next.js public variables
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_SOCKET_URL
@@ -35,7 +38,7 @@ COPY frontend/package*.json ./frontend/
 RUN npm ci --workspace=frontend --omit=dev
 
 COPY --from=builder /app/frontend/.next ./frontend/.next
-COPY --from=builder /app/frontend/public ./frontend/public 2>/dev/null || true
+COPY --from=builder /app/frontend/public ./frontend/public
 
 WORKDIR /app/frontend
 
