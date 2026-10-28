@@ -346,7 +346,7 @@ export default function HomePage() {
           /* Dashboard Screen */
           <div className="space-y-6">
             {/* Warning Banner if Subscription is NOT active */}
-            {!subscription?.isActive && (
+            {!subscription?.isActive ? (
               <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-orange-500/10 border-2 border-amber-400 p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-pulse">
                 <div className="flex items-center space-x-3">
                   <div className="p-2.5 bg-amber-500 text-white rounded-2xl flex-shrink-0 shadow-md shadow-amber-500/30">
@@ -368,6 +368,32 @@ export default function HomePage() {
                 >
                   Nâng cấp / Gia hạn ngay &rarr;
                 </button>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border border-emerald-300 p-4 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-emerald-600 text-white rounded-2xl flex-shrink-0 shadow-md shadow-emerald-500/20">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-sm">
+                      Gói thuê bao đang hoạt động: Còn {subscription.daysRemaining} ngày sử dụng
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      Hết hạn: {new Date(subscription.subscription?.expiresAt).toLocaleDateString("vi-VN")} • Tối đa {subscription.maxBots} tài khoản Zalo.
+                    </p>
+                  </div>
+                </div>
+
+                {accounts.length === 0 && (
+                  <button
+                    onClick={() => setIsQrModalOpen(true)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-2xl text-xs font-bold transition-all shadow-md shadow-emerald-500/20 active:scale-95 flex-shrink-0 flex items-center space-x-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Kết nối Zalo ngay</span>
+                  </button>
+                )}
               </div>
             )}
 
@@ -490,7 +516,6 @@ export default function HomePage() {
         onClose={() => setIsSubModalOpen(false)}
         onSubscriptionUpdated={() => {
           loadSubscription();
-          loadAccounts();
         }}
         onStartConnectZalo={() => {
           setIsSubModalOpen(false);

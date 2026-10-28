@@ -67,8 +67,15 @@ export function AccountList({
         </div>
         <h3 className="text-base font-semibold text-slate-800">Chưa có tài khoản Zalo nào</h3>
         <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-6">
-          Bấm vào nút "Kết nối Zalo" bên trên để quét mã QR và thêm tài khoản của bạn vào hệ thống tự động trả lời.
+          Bấm vào nút bên dưới để quét mã QR và thêm tài khoản Zalo của bạn vào hệ thống tự động trả lời.
         </p>
+        <button
+          onClick={onReauth}
+          className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-xs px-6 py-3 rounded-2xl font-semibold shadow-md shadow-blue-500/20 transition-all active:scale-95 cursor-pointer"
+        >
+          <Bot className="w-4 h-4" />
+          <span>Bấm vào đây để quét mã kết nối Zalo ngay</span>
+        </button>
       </div>
     );
   }

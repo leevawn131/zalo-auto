@@ -52,47 +52,95 @@ export function SubscriptionModal({
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
-  const [successInfo, setSuccessInfo] = useState<any>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [successData, setSuccessData] = useState<any>(null);
+  const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
     if (!isOpen) {
       setInvoice(null);
-      setIsPaymentSuccess(false);
-      setSuccessInfo(null);
+      setIsSuccess(false);
+      setSuccessData(null);
       return;
     }
     loadData();
   }, [isOpen]);
 
-  // Polling for invoice payment
+  // Polling for invoice payment in real-time
   useEffect(() => {
-    if (!invoice || isPaymentSuccess) return;
+    if (!invoice || isSuccess) return;
 
-    const initialDays = currentSub?.daysRemaining || 0;
-    const initialActive = currentSub?.isActive || false;
-
+    let isMounted = true;
     const interval = setInterval(async () => {
       try {
-        const res = await fetchWithAuth("/api/billing/subscription");
-        if (res.ok) {
-          const data = await res.json();
-          // Check if subscription status transitioned or extended
-          if (data.isActive && (!initialActive || data.daysRemaining > initialDays)) {
-            setIsPaymentSuccess(true);
-            setSuccessInfo(data);
-            setCurrentSub(data);
-            setInvoice(null);
-            onSubscriptionUpdated();
+        const [txRes, subRes] = await Promise.all([
+          fetchWithAuth("/api/billing/transactions"),
+          fetchWithAuth("/api/billing/subscription"),
+        ]);
+
+        if (!isMounted) return;
+
+        let paid = false;
+        let subData: any = null;
+
+        if (subRes.ok) {
+          subData = await subRes.json();
+        }
+
+        if (txRes.ok) {
+          const txData = await txRes.json();
+          const targetTx = txData.transactions?.find(
+            (t: any) => t.paymentCode === invoice.paymentCode
+          );
+          if (targetTx && targetTx.status === "PAID") {
+            paid = true;
           }
         }
+
+        if (!paid && subData?.isActive) {
+          if (!currentSub?.isActive || subData.daysRemaining > (currentSub?.daysRemaining || 0)) {
+            paid = true;
+          }
+        }
+
+        if (paid) {
+          setIsSuccess(true);
+          setSuccessData(subData);
+          if (subData) setCurrentSub(subData);
+          onSubscriptionUpdated();
+          clearInterval(interval);
+        }
       } catch (err) {
-        console.error("Polling subscription error:", err);
+        console.error("Polling error:", err);
       }
     }, 2000);
 
-    return () => clearInterval(interval);
-  }, [invoice, currentSub, isPaymentSuccess, onSubscriptionUpdated]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [invoice, isSuccess, currentSub]);
+
+  // Countdown auto-close / auto-connect
+  useEffect(() => {
+    if (!isSuccess) return;
+    setCountdown(5);
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          if (onStartConnectZalo) {
+            onStartConnectZalo();
+          } else {
+            onClose();
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isSuccess]);
 
   const loadData = async () => {
     try {
@@ -190,42 +238,46 @@ export function SubscriptionModal({
             </div>
           </div>
 
-          {isPaymentSuccess && successInfo ? (
-            /* Payment Success Screen */
-            <div className="py-8 px-4 text-center space-y-6 animate-in zoom-in-95 duration-200">
-              <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/20 border-2 border-emerald-300">
+          {isSuccess ? (
+            /* Success State */
+            <div className="py-6 px-4 text-center space-y-6 animate-in zoom-in-95 duration-300">
+              <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20 ring-8 ring-emerald-50 animate-bounce">
                 <CheckCircle2 className="w-12 h-12" />
               </div>
 
-              <div className="space-y-1">
-                <h4 className="text-2xl font-black text-slate-800">🎉 Thanh toán thành công!</h4>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Hệ thống SePay đã xử lý giao dịch. Gói thuê bao Zalo Bot của bạn đã được kích hoạt thành công.
+              <div className="space-y-1.5">
+                <h3 className="text-2xl font-black text-slate-800">🎉 Thanh toán thành công!</h3>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  Hệ thống SePay đã nhận tiền và kích hoạt ngay lập tức gói dịch vụ cho tài khoản của bạn.
                 </p>
               </div>
 
-              <div className="p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl max-w-sm mx-auto text-left space-y-2.5">
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/80 rounded-2xl p-4 max-w-md mx-auto text-left space-y-2.5 shadow-sm">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Trạng thái thuê bao:</span>
+                  <span className="font-bold text-emerald-700 bg-emerald-100/90 px-2.5 py-0.5 rounded-full text-[11px]">
+                    ĐANG HOẠT ĐỘNG
+                  </span>
+                </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-medium">Thời gian sử dụng:</span>
-                  <span className="font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
-                    {successInfo.daysRemaining} ngày
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-medium">Hạn sử dụng:</span>
                   <span className="font-bold text-slate-800">
-                    {new Date(successInfo.subscription?.expiresAt || Date.now()).toLocaleDateString("vi-VN")}
+                    {successData?.daysRemaining || currentSub?.daysRemaining} ngày (Hết hạn:{" "}
+                    {new Date(
+                      successData?.subscription?.expiresAt || currentSub?.subscription?.expiresAt || Date.now()
+                    ).toLocaleDateString("vi-VN")}
+                    )
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-medium">Số tài khoản bot tối đa:</span>
-                  <span className="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
-                    {successInfo.maxBots} tài khoản
+                  <span className="text-slate-500 font-medium">Số lượng Bot Zalo tối đa:</span>
+                  <span className="font-bold text-indigo-700">
+                    {successData?.maxBots || currentSub?.maxBots || 2} tài khoản
                   </span>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <div className="space-y-3 pt-2 max-w-md mx-auto">
                 <button
                   onClick={() => {
                     if (onStartConnectZalo) {
@@ -234,16 +286,15 @@ export function SubscriptionModal({
                       onClose();
                     }
                   }}
-                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-6 py-3 rounded-2xl transition-all shadow-md shadow-blue-500/25 active:scale-95"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 px-6 rounded-2xl text-xs sm:text-sm shadow-lg shadow-blue-500/25 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2"
                 >
-                  🚀 Bắt đầu kết nối Zalo ngay
+                  <Sparkles className="w-4 h-4" />
+                  <span>Bắt đầu quét mã kết nối Zalo ngay &rarr;</span>
                 </button>
-                <button
-                  onClick={onClose}
-                  className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold px-5 py-3 rounded-2xl transition-all"
-                >
-                  Đóng
-                </button>
+
+                <p className="text-[11px] text-slate-400">
+                  Tự động chuyển sang quét mã Zalo sau <strong className="text-slate-600">{countdown}</strong> giây...
+                </p>
               </div>
             </div>
           ) : invoice ? (
