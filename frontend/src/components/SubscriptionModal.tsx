@@ -37,12 +37,14 @@ interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubscriptionUpdated: () => void;
+  onStartConnectZalo?: () => void;
 }
 
 export function SubscriptionModal({
   isOpen,
   onClose,
   onSubscriptionUpdated,
+  onStartConnectZalo,
 }: SubscriptionModalProps) {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [currentSub, setCurrentSub] = useState<any>(null);
@@ -50,14 +52,47 @@ export function SubscriptionModal({
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
+  const [successInfo, setSuccessInfo] = useState<any>(null);
 
   useEffect(() => {
     if (!isOpen) {
       setInvoice(null);
+      setIsPaymentSuccess(false);
+      setSuccessInfo(null);
       return;
     }
     loadData();
   }, [isOpen]);
+
+  // Polling for invoice payment
+  useEffect(() => {
+    if (!invoice || isPaymentSuccess) return;
+
+    const initialDays = currentSub?.daysRemaining || 0;
+    const initialActive = currentSub?.isActive || false;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetchWithAuth("/api/billing/subscription");
+        if (res.ok) {
+          const data = await res.json();
+          // Check if subscription status transitioned or extended
+          if (data.isActive && (!initialActive || data.daysRemaining > initialDays)) {
+            setIsPaymentSuccess(true);
+            setSuccessInfo(data);
+            setCurrentSub(data);
+            setInvoice(null);
+            onSubscriptionUpdated();
+          }
+        }
+      } catch (err) {
+        console.error("Polling subscription error:", err);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [invoice, currentSub, isPaymentSuccess, onSubscriptionUpdated]);
 
   const loadData = async () => {
     try {
@@ -155,7 +190,63 @@ export function SubscriptionModal({
             </div>
           </div>
 
-          {invoice ? (
+          {isPaymentSuccess && successInfo ? (
+            /* Payment Success Screen */
+            <div className="py-8 px-4 text-center space-y-6 animate-in zoom-in-95 duration-200">
+              <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/20 border-2 border-emerald-300">
+                <CheckCircle2 className="w-12 h-12" />
+              </div>
+
+              <div className="space-y-1">
+                <h4 className="text-2xl font-black text-slate-800">🎉 Thanh toán thành công!</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  Hệ thống SePay đã xử lý giao dịch. Gói thuê bao Zalo Bot của bạn đã được kích hoạt thành công.
+                </p>
+              </div>
+
+              <div className="p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl max-w-sm mx-auto text-left space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Thời gian sử dụng:</span>
+                  <span className="font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                    {successInfo.daysRemaining} ngày
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Hạn sử dụng:</span>
+                  <span className="font-bold text-slate-800">
+                    {new Date(successInfo.subscription?.expiresAt || Date.now()).toLocaleDateString("vi-VN")}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Số tài khoản bot tối đa:</span>
+                  <span className="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
+                    {successInfo.maxBots} tài khoản
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    if (onStartConnectZalo) {
+                      onStartConnectZalo();
+                    } else {
+                      onClose();
+                    }
+                  }}
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-6 py-3 rounded-2xl transition-all shadow-md shadow-blue-500/25 active:scale-95"
+                >
+                  🚀 Bắt đầu kết nối Zalo ngay
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold px-5 py-3 rounded-2xl transition-all"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          ) : invoice ? (
             /* VietQR Payment Screen */
             <div className="space-y-4 animate-in zoom-in-95 duration-200">
               <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-center">

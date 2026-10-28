@@ -490,6 +490,11 @@ export default function HomePage() {
         onClose={() => setIsSubModalOpen(false)}
         onSubscriptionUpdated={() => {
           loadSubscription();
+          loadAccounts();
+        }}
+        onStartConnectZalo={() => {
+          setIsSubModalOpen(false);
+          setIsQrModalOpen(true);
         }}
       />
     </div>
