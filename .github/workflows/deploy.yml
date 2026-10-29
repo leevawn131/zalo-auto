@@ -12,10 +12,14 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
-          port: ${{ secrets.VPS_PORT }}
+          port: ${{ secrets.VPS_PORT || 22 }}
           username: root
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            cd ~/zalo-auto
-            git pull origin main
+            if [ ! -d "$HOME/zalo-auto" ]; then
+              git clone https://github.com/leevawn131/zalo-auto.git $HOME/zalo-auto
+            fi
+            cd $HOME/zalo-auto
+            git fetch origin main
+            git reset --hard origin/main
             docker compose -f docker-compose.prod.yml up -d --build
