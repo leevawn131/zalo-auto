@@ -22,6 +22,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "image-size": "^2.0.4",
     "ioredis": "^5.5.0",
     "jsonwebtoken": "^9.0.2",
     "pino": "^9.6.0",

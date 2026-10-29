@@ -81,16 +81,17 @@ model BotConfiguration {
 }
 
 model AutoReplyRule {
-  id           String           @id @default(cuid())
-  botConfigId  String
-  keyword      String
-  matchType    String           @default("CONTAINS") // EXACT, CONTAINS, REGEX
-  replyMessage String
-  isEnabled    Boolean          @default(true)
-  priority     Int              @default(0)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  botConfig    BotConfiguration @relation(fields: [botConfigId], references: [id], onDelete: Cascade)
+  id            String           @id @default(cuid())
+  botConfigId   String
+  keyword       String
+  matchType     String           @default("CONTAINS") // EXACT, CONTAINS, REGEX
+  replyMessage  String
+  replyImageUrl String?
+  isEnabled     Boolean          @default(true)
+  priority      Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  botConfig     BotConfiguration @relation(fields: [botConfigId], references: [id], onDelete: Cascade)
 
   @@index([botConfigId])
   @@map("auto_reply_rules")

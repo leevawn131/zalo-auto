@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { fetchWithAuth } from "@/lib/api";
+import React, { useEffect, useState, useRef } from "react";
+import { fetchWithAuth, API_URL } from "@/lib/api";
 import {
   X,
   Plus,
@@ -13,6 +13,10 @@ import {
   Bot,
   RefreshCw,
   AlertCircle,
+  Image as ImageIcon,
+  Upload,
+  Link as LinkIcon,
+  ExternalLink,
 } from "lucide-react";
 
 interface Rule {
@@ -20,6 +24,7 @@ interface Rule {
   keyword: string;
   matchType: "EXACT" | "CONTAINS" | "REGEX";
   replyMessage: string;
+  replyImageUrl?: string | null;
   isEnabled: boolean;
   priority: number;
 }
@@ -59,7 +64,12 @@ export function BotConfigModal({
   const [newKeyword, setNewKeyword] = useState("");
   const [newMatchType, setNewMatchType] = useState<"EXACT" | "CONTAINS" | "REGEX">("CONTAINS");
   const [newReplyMessage, setNewReplyMessage] = useState("");
+  const [newReplyImageUrl, setNewReplyImageUrl] = useState("");
   const [newPriority, setNewPriority] = useState(0);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isOpen || !accountId) return;
@@ -124,9 +134,61 @@ export function BotConfigModal({
     }
   };
 
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Vui lòng chọn tệp hình ảnh (PNG, JPG, WEBP).");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("Dung lượng ảnh tối đa 10MB.");
+      return;
+    }
+
+    setIsUploadingImage(true);
+    setUploadError(null);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result as string;
+          const res = await fetchWithAuth("/api/zalo/bot/upload-image", {
+            method: "POST",
+            body: JSON.stringify({
+              fileData: base64Data,
+              fileName: file.name,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Tải ảnh thất bại");
+          setNewReplyImageUrl(data.url);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          setUploadError(msg);
+        } finally {
+          setIsUploadingImage(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setUploadError(msg);
+      setIsUploadingImage(false);
+    }
+  };
+
   const handleAddRule = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!accountId || !newKeyword.trim() || !newReplyMessage.trim()) return;
+    if (!accountId || !newKeyword.trim()) return;
+
+    if (!newReplyMessage.trim() && !newReplyImageUrl.trim()) {
+      alert("Vui lòng nhập tin nhắn trả lời HOẶC đính kèm ảnh trả lời.");
+      return;
+    }
 
     try {
       const res = await fetchWithAuth(`/api/zalo/accounts/${accountId}/rules`, {
@@ -135,6 +197,7 @@ export function BotConfigModal({
           keyword: newKeyword.trim(),
           matchType: newMatchType,
           replyMessage: newReplyMessage.trim(),
+          replyImageUrl: newReplyImageUrl.trim() || null,
           priority: newPriority,
           isEnabled: true,
         }),
@@ -146,7 +209,12 @@ export function BotConfigModal({
         );
         setNewKeyword("");
         setNewReplyMessage("");
+        setNewReplyImageUrl("");
         setNewPriority(0);
+        setUploadError(null);
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Thêm quy tắc thất bại");
       }
     } catch (err) {
       console.error("Failed to add rule", err);
@@ -190,6 +258,12 @@ export function BotConfigModal({
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const formatImageUrl = (url: string) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    return `${API_URL}${url}`;
   };
 
   if (!isOpen) return null;
@@ -252,7 +326,7 @@ export function BotConfigModal({
                 : "border-transparent text-slate-400 hover:text-slate-600"
             }`}
           >
-            Cài đặt nâng cao (Độ trễ & Giới hạn)
+            Cài đặt nâng cao (Độ trễ &amp; Giới hạn)
           </button>
         </div>
 
@@ -273,19 +347,19 @@ export function BotConfigModal({
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-semibold text-blue-900 flex items-center space-x-1.5">
                     <Plus className="w-4 h-4 text-blue-600" />
-                    <span>Thêm quy tắc trả lời mới</span>
+                    <span>Thêm quy tắc trả lời mới (Hỗ trợ tin nhắn &amp; hình ảnh)</span>
                   </h4>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="sm:col-span-2">
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      Từ khóa (Keyword)
+                      Từ khóa (Keyword) <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="Ví dụ: tư vấn, giá, chào bạn"
+                      placeholder="Ví dụ: tư vấn, bảng giá, menu, chào bạn"
                       value={newKeyword}
                       onChange={(e) => setNewKeyword(e.target.value)}
                       className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -310,16 +384,95 @@ export function BotConfigModal({
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                    Câu trả lời tự động (Auto-reply message)
+                    Nội dung tin nhắn trả lời (Text)
                   </label>
                   <textarea
-                    required
                     rows={2}
-                    placeholder="Nội dung bot sẽ tự động gửi lại cho khách..."
+                    placeholder="Nhập nội dung bot trả lời (có thể để trống nếu chỉ muốn gửi ảnh)..."
                     value={newReplyMessage}
                     onChange={(e) => setNewReplyMessage(e.target.value)}
                     className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
                   />
+                </div>
+
+                {/* IMAGE REPLY ATTACHMENT */}
+                <div className="bg-white p-3 rounded-xl border border-blue-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-semibold text-slate-700 flex items-center space-x-1.5">
+                      <ImageIcon className="w-4 h-4 text-indigo-600" />
+                      <span>Hình ảnh đính kèm phản hồi (Tùy chọn)</span>
+                    </label>
+                    {newReplyImageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setNewReplyImageUrl("")}
+                        className="text-[10px] text-red-500 hover:underline flex items-center space-x-0.5"
+                      >
+                        <X className="w-3 h-3" />
+                        <span>Xóa ảnh</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {newReplyImageUrl ? (
+                    <div className="flex items-center space-x-3 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                      <img
+                        src={formatImageUrl(newReplyImageUrl)}
+                        alt="Preview"
+                        className="w-16 h-16 object-cover rounded-md border border-slate-200 shadow-sm"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-medium text-slate-700 truncate">
+                          Đã chọn ảnh phản hồi
+                        </p>
+                        <p className="text-[10px] text-slate-400 truncate">{newReplyImageUrl}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          value={newReplyImageUrl}
+                          onChange={(e) => setNewReplyImageUrl(e.target.value)}
+                          placeholder="Dán link ảnh (https://...) hoặc tải ảnh lên"
+                          className="w-full text-xs pl-7 pr-3 py-1.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                        <LinkIcon className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2.5" />
+                      </div>
+
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/png,image/jpeg,image/webp,image/jpg"
+                        onChange={handleImageFileChange}
+                        className="hidden"
+                      />
+
+                      <button
+                        type="button"
+                        disabled={isUploadingImage}
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center justify-center space-x-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold border border-indigo-200 transition-colors disabled:opacity-50 shrink-0"
+                      >
+                        {isUploadingImage ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Đang tải...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Tải ảnh lên</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {uploadError && (
+                    <p className="text-[10px] text-red-500 font-medium">{uploadError}</p>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between pt-1">
@@ -356,8 +509,8 @@ export function BotConfigModal({
                       key={rule.id}
                       className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-sm flex items-start justify-between gap-3 hover:border-slate-300 transition-all"
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
+                      <div className="flex-1 space-y-1.5">
+                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                           <span className="font-semibold text-slate-800 text-xs">{rule.keyword}</span>
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">
                             {rule.matchType === "CONTAINS"
@@ -366,18 +519,48 @@ export function BotConfigModal({
                               ? "Chính xác"
                               : "Regex"}
                           </span>
+                          {rule.replyImageUrl && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center space-x-1">
+                              <ImageIcon className="w-2.5 h-2.5" />
+                              <span>Có hình ảnh</span>
+                            </span>
+                          )}
                           {rule.priority > 0 && (
                             <span className="text-[10px] text-blue-600 font-medium">
                               Ưu tiên: {rule.priority}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-600 mt-1 line-clamp-2 bg-slate-50 p-2 rounded-lg">
-                          {rule.replyMessage}
-                        </p>
+
+                        {rule.replyMessage && (
+                          <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg leading-relaxed">
+                            {rule.replyMessage}
+                          </p>
+                        )}
+
+                        {rule.replyImageUrl && (
+                          <div className="flex items-center space-x-2 pt-1">
+                            <a
+                              href={formatImageUrl(rule.replyImageUrl)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="group relative inline-block"
+                            >
+                              <img
+                                src={formatImageUrl(rule.replyImageUrl)}
+                                alt="Rule attachment"
+                                className="w-16 h-16 object-cover rounded-lg border border-slate-200 group-hover:opacity-90 transition-opacity"
+                              />
+                              <div className="absolute inset-0 bg-black/30 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </div>
+                            </a>
+                            <span className="text-[10px] text-slate-400">Bấm để phóng to ảnh</span>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex items-center space-x-2 flex-shrink-0">
+                      <div className="flex items-center space-x-2 flex-shrink-0 pt-1">
                         <button
                           onClick={() => handleToggleRule(rule.id, rule.isEnabled)}
                           className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${

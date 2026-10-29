@@ -165,4 +165,49 @@ describe("AutoReplyService (Incoming Messages & Revoked Logging)", () => {
     expect(logged?.revokedAt).toBeDefined();
     expect(logged?.content).toBe("Tin nhắn bí mật sắp bị gỡ");
   });
+
+  it("should send reply with image attachment when rule has replyImageUrl", async () => {
+    // Mock resolveImagePath
+    vi.spyOn(service, "resolveImagePath").mockResolvedValue("/tmp/mock_image.png");
+
+    const botConfig = await prisma.botConfiguration.findUnique({
+      where: { accountId },
+    });
+
+    await prisma.autoReplyRule.create({
+      data: {
+        botConfigId: botConfig!.id,
+        keyword: "bảng giá",
+        matchType: "CONTAINS",
+        replyMessage: "Dạ đây là bảng giá dịch vụ bên em ạ:",
+        replyImageUrl: "/uploads/bang_gia.png",
+        isEnabled: true,
+        priority: 10,
+      },
+    });
+
+    const incomingMsg: Partial<Message> = {
+      type: ThreadType.User,
+      threadId: "user_thread_456",
+      isSelf: false,
+      data: {
+        content: "Cho mình xin bảng giá với",
+        msgId: "msg_price_202",
+        cliMsgId: "cli_202",
+        uidFrom: "customer_uid_777",
+        dName: "Khách Hàng B",
+      } as never,
+    };
+
+    await service.handleIncomingMessage(accountId, mockApi as unknown as API, incomingMsg as Message);
+
+    expect(mockApi.sendMessage).toHaveBeenCalledWith(
+      {
+        msg: "Dạ đây là bảng giá dịch vụ bên em ạ:",
+        attachments: ["/tmp/mock_image.png"],
+      },
+      "user_thread_456",
+      ThreadType.User
+    );
+  });
 });

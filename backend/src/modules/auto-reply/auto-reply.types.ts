@@ -11,6 +11,7 @@ export interface RuleDefinition {
   keyword: string;
   matchType: MatchType | string;
   replyMessage: string;
+  replyImageUrl?: string | null;
   isEnabled: boolean;
   priority: number;
 }
@@ -44,5 +45,6 @@ export interface AutoReplyResult {
   matched: boolean;
   ruleId?: string;
   replyText?: string;
+  replyImageUrl?: string | null;
   reason?: string;
 }

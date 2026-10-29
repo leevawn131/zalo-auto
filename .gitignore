@@ -42,6 +42,12 @@ lerna-debug.log*
 coverage/
 .vitest/
 
+# Uploaded Media
+uploads/*
+!uploads/.gitkeep
+**/uploads/*
+!**/uploads/.gitkeep
+
 # OS & Editor
 .DS_Store
 Thumbs.db

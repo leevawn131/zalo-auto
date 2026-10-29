@@ -25,6 +25,7 @@ export class RuleMatcher {
           matched: true,
           ruleId: rule.id,
           replyText: rule.replyMessage,
+          replyImageUrl: rule.replyImageUrl,
         };
       }
     }
