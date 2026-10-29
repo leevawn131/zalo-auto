@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { logger } from "../../config/logger.js";
 import { autoReplyService } from "../auto-reply/auto-reply.service.js";
+import { sePayService } from "../billing/sepay.service.js";
 import {
   type IZaloAdapter,
   RealZaloAdapter,
@@ -305,7 +306,9 @@ export class ZaloAuthService {
 
     // Transition to ONLINE
     if (sm.getStatus() !== ZaloAccountStatus.ONLINE) {
-      sm.transitionTo(ZaloAccountStatus.CONNECTING, "Starting listener");
+      if (sm.getStatus() !== ZaloAccountStatus.CONNECTING) {
+        sm.transitionTo(ZaloAccountStatus.CONNECTING, "Starting listener");
+      }
       api.listener.start({ retryOnClose: false });
       sm.transitionTo(ZaloAccountStatus.ONLINE, "Listener connected");
     }
@@ -349,50 +352,61 @@ export class ZaloAuthService {
     const active = this.activeConnections.get(accountId);
     if (!active) return;
 
-    // Code 3000: DuplicateConnection, Code 3003: KickConnection
-    if (code === 3000 || code === 3003) {
-      logger.warn({ accountId, code, reason }, "Zalo session kicked or replaced by another device");
-      active.stateMachine.transitionTo(
-        ZaloAccountStatus.REAUTH_REQUIRED,
-        `Session terminated by server (code ${code}: ${reason})`
-      );
-      void this.sessionSvc.invalidateSession(accountId, `Kicked: ${reason}`);
-      this.activeConnections.delete(accountId);
-      return;
-    }
+    const isDuplicateOrKick = code === 3000 || code === 3003;
 
-    // Abnormal / network closure (e.g. 1006)
+    // Check if we can attempt silent reconnection
     if (active.stateMachine.canReconnect()) {
-      active.stateMachine.transitionTo(
-        ZaloAccountStatus.RECONNECTING,
-        `Socket closed unexpectedly (code ${code}: ${reason})`
-      );
+      const statusReason = isDuplicateOrKick
+        ? "Trùng phiên đăng nhập (Zalo Web). Đang tự động kết nối lại ngầm..."
+        : `Mất kết nối tạm thời (${code}: ${reason}). Đang tự động kết nối lại...`;
+
+      active.stateMachine.transitionTo(ZaloAccountStatus.RECONNECTING, statusReason);
       void this.repository.updateAccountStatus(
         accountId,
         ZaloAccountStatus.RECONNECTING,
-        reason
+        statusReason
       );
 
-      const delay = active.stateMachine.getBackoffDelay();
-      logger.info({ accountId, delay, retry: active.stateMachine.getRetryCount() }, "Scheduling reconnection");
+      // Duplicate connections need a ~15s grace period for other tab to release, normal network uses backoff
+      const delay = isDuplicateOrKick ? 15000 : active.stateMachine.getBackoffDelay();
+      logger.info(
+        { accountId, delay, isDuplicateOrKick, retry: active.stateMachine.getRetryCount() },
+        "Scheduling silent auto-recovery attempt"
+      );
 
       if (active.reconnectTimeout) {
         clearTimeout(active.reconnectTimeout);
       }
 
-      active.reconnectTimeout = setTimeout(() => {
-        void this.restoreConnection(accountId, active.userId);
+      active.reconnectTimeout = setTimeout(async () => {
+        logger.info({ accountId }, "Executing silent auto-recovery attempt...");
+        const restored = await this.restoreConnection(accountId, active.userId);
+        if (!restored) {
+          logger.warn({ accountId }, "Silent auto-recovery failed. Moving to REAUTH_REQUIRED.");
+          active.stateMachine.transitionTo(
+            ZaloAccountStatus.REAUTH_REQUIRED,
+            "Phiên Zalo đã bị thu hồi hoặc hết hạn. Vui lòng quét lại QR."
+          );
+          void this.sessionSvc.invalidateSession(
+            accountId,
+            "Phiên Zalo đã bị thu hồi hoặc hết hạn. Vui lòng quét lại QR."
+          );
+          this.activeConnections.delete(accountId);
+        } else {
+          logger.info({ accountId }, "Silent auto-recovery succeeded! Bot is back ONLINE.");
+        }
       }, delay);
     } else {
+      logger.warn({ accountId }, "Exceeded maximum reconnect attempts. Setting REAUTH_REQUIRED.");
       active.stateMachine.transitionTo(
-        ZaloAccountStatus.ERROR,
-        "Exceeded maximum reconnect attempts"
+        ZaloAccountStatus.REAUTH_REQUIRED,
+        "Đã vượt quá số lần thử kết nối lại. Phiên Zalo cần được quét lại QR."
       );
-      void this.repository.updateAccountStatus(
+      void this.sessionSvc.invalidateSession(
         accountId,
-        ZaloAccountStatus.ERROR,
-        "Exceeded maximum reconnect attempts"
+        "Đã vượt quá số lần thử kết nối lại. Phiên Zalo cần được quét lại QR."
       );
+      this.activeConnections.delete(accountId);
     }
   }
 
@@ -431,6 +445,57 @@ export class ZaloAuthService {
       }
 
       return false;
+    }
+  }
+
+  /**
+   * Auto-restore all active Zalo accounts on server startup
+   */
+  public async restoreAllActiveSessions(): Promise<number> {
+    logger.info("Scanning database for active Zalo sessions to auto-restore on startup...");
+    try {
+      const accounts = await this.repository.findActiveAccountsForRestore();
+      logger.info({ count: accounts.length }, "Found candidate accounts for startup auto-restore");
+      let restoredCount = 0;
+
+      for (const acc of accounts) {
+        if (!acc.session) {
+          logger.warn({ accountId: acc.id }, "Account has no stored session, marking STOPPED");
+          await this.repository.updateAccountStatus(acc.id, ZaloAccountStatus.STOPPED, "No session found");
+          continue;
+        }
+
+        // Check if user subscription is active
+        const isSubActive = await sePayService.isUserSubscriptionActive(acc.userId);
+        if (!isSubActive) {
+          logger.warn({ accountId: acc.id, userId: acc.userId }, "User subscription inactive, marking STOPPED");
+          await this.repository.updateAccountStatus(
+            acc.id,
+            ZaloAccountStatus.STOPPED,
+            "Gói thuê bao chưa được kích hoạt hoặc đã hết hạn"
+          );
+          continue;
+        }
+
+        logger.info({ accountId: acc.id, displayName: acc.displayName }, "Auto-restoring account session on startup...");
+        try {
+          const success = await this.restoreConnection(acc.id, acc.userId);
+          if (success) {
+            restoredCount++;
+            logger.info({ accountId: acc.id, displayName: acc.displayName }, "Account successfully auto-restored on startup!");
+          } else {
+            logger.warn({ accountId: acc.id, displayName: acc.displayName }, "Failed to restore account session on startup");
+          }
+        } catch (e) {
+          logger.error({ accountId: acc.id, err: e }, "Exception restoring account on startup");
+        }
+      }
+
+      logger.info({ restoredCount, totalCandidates: accounts.length }, "Startup auto-restore sequence completed");
+      return restoredCount;
+    } catch (err) {
+      logger.error({ err }, "Error during auto-restore startup sequence");
+      return 0;
     }
   }
 

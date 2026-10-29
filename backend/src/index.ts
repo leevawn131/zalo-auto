@@ -4,6 +4,7 @@ import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { ZaloAuthGateway } from "./modules/zalo-auth/zalo-auth.gateway.js";
+import { authService } from "./modules/zalo-auth/zalo-auth.service.js";
 import { prisma } from "./config/database.js";
 
 async function bootstrap() {
@@ -25,6 +26,11 @@ async function bootstrap() {
   server.listen(env.PORT, () => {
     logger.info(`🚀 Zalo Auto-Reply Backend running on http://localhost:${env.PORT}`);
     logger.info(`🔌 Socket.IO Gateway ready for real-time QR streaming`);
+
+    // Auto-restore previously active bot sessions in background
+    authService.restoreAllActiveSessions().catch((err) => {
+      logger.error({ err }, "Error in startup auto-restore sequence");
+    });
   });
 
   // Graceful shutdown

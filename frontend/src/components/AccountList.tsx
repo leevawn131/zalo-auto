@@ -84,45 +84,45 @@ export function AccountList({
     switch (account.status) {
       case "ONLINE":
         return (
-          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Trực tuyến</span>
+            <span>Trực tuyến (Hoạt động)</span>
           </span>
         );
       case "CONNECTING":
         return (
-          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-            <RefreshCw className="w-3 h-3 animate-spin text-blue-500" />
-            <span>Đang kết nối</span>
+          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            <RefreshCw className="w-3 h-3 animate-spin text-blue-600" />
+            <span>Đang kết nối...</span>
           </span>
         );
       case "RECONNECTING":
         return (
-          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-            <Clock className="w-3 h-3 text-amber-500" />
-            <span>Đang thử lại...</span>
+          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300 animate-pulse">
+            <RefreshCw className="w-3 h-3 animate-spin text-amber-600" />
+            <span>Đang tự kết nối lại...</span>
           </span>
         );
       case "REAUTH_REQUIRED":
         return (
-          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">
-            <AlertTriangle className="w-3 h-3 text-rose-500" />
-            <span>Cần quét lại QR</span>
+          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+            <AlertTriangle className="w-3 h-3 text-rose-600" />
+            <span>Hết phiên - Cần quét QR</span>
           </span>
         );
       case "STOPPED":
         return (
-          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
             <Square className="w-2.5 h-2.5 text-slate-400" />
-            <span>Đã dừng</span>
+            <span>Đã tạm dừng</span>
           </span>
         );
       case "ERROR":
       default:
         return (
-          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
             <AlertTriangle className="w-3 h-3 text-red-500" />
-            <span>Lỗi</span>
+            <span>Lỗi kết nối</span>
           </span>
         );
     }
@@ -160,12 +160,32 @@ export function AccountList({
               </div>
             </div>
 
-            {account.errorReason && (
+            {account.status === "RECONNECTING" ? (
+              <div className="mt-3 text-xs bg-amber-50 text-amber-900 p-3 rounded-xl border border-amber-200 flex items-start space-x-2.5">
+                <RefreshCw className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5 animate-spin" />
+                <div className="flex-1">
+                  <p className="font-bold text-amber-900">Đang thử kết nối lại ngầm (Auto-Recovery)</p>
+                  <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
+                    {account.errorReason || "Hệ thống đang tự động phục hồi phiên Zalo. Nếu bạn vừa mở web Zalo trên máy tính, hãy đóng tab đó lại để bot kết nối nhanh hơn."}
+                  </p>
+                </div>
+              </div>
+            ) : account.status === "REAUTH_REQUIRED" ? (
+              <div className="mt-3 text-xs bg-rose-50 text-rose-900 p-3 rounded-xl border border-rose-200 flex items-start space-x-2.5">
+                <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-bold text-rose-900">Phiên Zalo cần xác thực lại</p>
+                  <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
+                    {account.errorReason || "Phiên đăng nhập Zalo đã hết hạn hoặc bị hủy do đăng nhập trùng thiết bị. Vui lòng Quét lại QR hoặc bấm Thử kết nối lại ngầm."}
+                  </p>
+                </div>
+              </div>
+            ) : account.errorReason && account.status !== "ONLINE" ? (
               <div className="mt-3 text-xs bg-rose-50 text-rose-700 p-2.5 rounded-xl border border-rose-100 flex items-start space-x-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 text-rose-500 flex-shrink-0 mt-0.5" />
                 <span className="line-clamp-2">{account.errorReason}</span>
               </div>
-            )}
+            ) : null}
 
             {/* Quick action badges */}
             <div className="mt-4 flex flex-wrap gap-2">
@@ -202,19 +222,52 @@ export function AccountList({
           <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               {account.status === "REAUTH_REQUIRED" ? (
-                <button
-                  onClick={() => {
-                    if (!subscriptionActive) {
-                      onRequireSubscription?.();
-                      return;
-                    }
-                    onReauth();
-                  }}
-                  className="flex items-center space-x-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>Quét lại QR</span>
-                </button>
+                <div className="flex items-center flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      if (!subscriptionActive) {
+                        onRequireSubscription?.();
+                        return;
+                      }
+                      onReauth();
+                    }}
+                    className="flex items-center space-x-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition-all shadow-sm shadow-rose-500/20 active:scale-95"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Quét lại QR</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!subscriptionActive) {
+                        onRequireSubscription?.();
+                        return;
+                      }
+                      onReconnect(account.id);
+                    }}
+                    className="flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 py-1.5 rounded-lg font-medium border border-slate-200 transition-colors"
+                    title="Thử tự động kết nối lại bằng cookie đã lưu"
+                  >
+                    <Play className="w-3 h-3 text-blue-600" />
+                    <span>Thử kết nối lại ngầm</span>
+                  </button>
+                </div>
+              ) : account.status === "RECONNECTING" ? (
+                <div className="flex items-center space-x-2">
+                  <button
+                    disabled
+                    className="flex items-center space-x-1.5 bg-amber-100 text-amber-800 text-xs px-3 py-1.5 rounded-lg font-medium cursor-wait"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600" />
+                    <span>Đang tự kết nối lại...</span>
+                  </button>
+                  <button
+                    onClick={() => onDisconnect(account.id)}
+                    className="text-xs text-slate-500 hover:text-slate-700 underline"
+                  >
+                    Hủy
+                  </button>
+                </div>
               ) : account.status === "ONLINE" ? (
                 <button
                   onClick={() => onDisconnect(account.id)}

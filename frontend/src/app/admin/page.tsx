@@ -1052,11 +1052,25 @@ export default function AdminPage() {
                             {b.status === "ONLINE" ? (
                               <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                <span>ONLINE</span>
+                                <span>Trực tuyến</span>
+                              </span>
+                            ) : b.status === "RECONNECTING" ? (
+                              <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">
+                                <RefreshCw className="w-2.5 h-2.5 animate-spin text-amber-400" />
+                                <span>Đang tự kết nối lại...</span>
+                              </span>
+                            ) : b.status === "REAUTH_REQUIRED" ? (
+                              <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                <AlertTriangle className="w-2.5 h-2.5 text-rose-400" />
+                                <span>Hết phiên (Cần quét QR)</span>
+                              </span>
+                            ) : b.status === "STOPPED" ? (
+                              <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-700/50 text-slate-400">
+                                <span>Đã tạm dừng</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-700/50 text-slate-400">
-                                <span>{b.status}</span>
+                              <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                                <span>Lỗi kết nối</span>
                               </span>
                             )}
                           </td>

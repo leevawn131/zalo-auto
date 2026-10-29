@@ -42,6 +42,7 @@ export class ZaloConnectionStateMachine {
       ZaloAccountStatus.DISCONNECTED,
     ],
     [ZaloAccountStatus.CONNECTING]: [
+      ZaloAccountStatus.CONNECTING,
       ZaloAccountStatus.ONLINE,
       ZaloAccountStatus.RECONNECTING,
       ZaloAccountStatus.REAUTH_REQUIRED,
@@ -58,6 +59,7 @@ export class ZaloConnectionStateMachine {
     ],
     [ZaloAccountStatus.RECONNECTING]: [
       ZaloAccountStatus.ONLINE,
+      ZaloAccountStatus.CONNECTING,
       ZaloAccountStatus.RECONNECTING,
       ZaloAccountStatus.REAUTH_REQUIRED,
       ZaloAccountStatus.ERROR,
@@ -65,6 +67,7 @@ export class ZaloConnectionStateMachine {
       ZaloAccountStatus.DISCONNECTED,
     ],
     [ZaloAccountStatus.REAUTH_REQUIRED]: [
+      ZaloAccountStatus.CONNECTING,
       ZaloAccountStatus.QR_PENDING,
       ZaloAccountStatus.DISCONNECTED,
       ZaloAccountStatus.STOPPED,

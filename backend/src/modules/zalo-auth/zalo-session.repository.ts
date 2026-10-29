@@ -198,6 +198,22 @@ export class ZaloSessionRepository {
       where: { id: accountId },
     });
   }
+
+  /**
+   * Find all accounts that should be restored on server startup
+   */
+  public async findActiveAccountsForRestore() {
+    return prisma.zaloAccount.findMany({
+      where: {
+        status: {
+          in: ["ONLINE", "CONNECTING", "RECONNECTING"],
+        },
+      },
+      include: {
+        session: true,
+      },
+    });
+  }
 }
 
 export const sessionRepository = new ZaloSessionRepository();

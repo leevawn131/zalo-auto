@@ -228,7 +228,7 @@ describe("ZaloAuthService (QR Lifecycle, Restoration & Reconnection)", () => {
     );
   });
 
-  it("should transition to REAUTH_REQUIRED if kicked by Zalo server (close code 3003)", async () => {
+  it("should attempt silent reconnection when duplicate connection or kick code occurs (3003)", async () => {
     const mockApi = new MockAPI();
     adapter.loginMock.mockResolvedValue(mockApi);
 
@@ -239,10 +239,12 @@ describe("ZaloAuthService (QR Lifecycle, Restoration & Reconnection)", () => {
     // Simulate Zalo server emitting close event with Kick code 3003
     mockApi.listener.emit("closed", 3003, "KickConnection");
 
-    expect(activeConn?.stateMachine.getStatus()).toBe(ZaloAccountStatus.REAUTH_REQUIRED);
-    expect(mockSessionService.invalidateSession).toHaveBeenCalledWith(
+    // Must transition to RECONNECTING for silent auto-recovery attempt first
+    expect(activeConn?.stateMachine.getStatus()).toBe(ZaloAccountStatus.RECONNECTING);
+    expect(mockRepo.updateAccountStatus).toHaveBeenCalledWith(
       "acc_123",
-      expect.stringContaining("KickConnection")
+      ZaloAccountStatus.RECONNECTING,
+      expect.stringContaining("Trùng phiên")
     );
   });
 
@@ -260,7 +262,7 @@ describe("ZaloAuthService (QR Lifecycle, Restoration & Reconnection)", () => {
     expect(mockRepo.updateAccountStatus).toHaveBeenCalledWith(
       "acc_123",
       ZaloAccountStatus.RECONNECTING,
-      "AbnormalClosure"
+      expect.stringContaining("AbnormalClosure")
     );
   });
 
