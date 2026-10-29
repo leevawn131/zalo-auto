@@ -17,6 +17,9 @@ import {
   ChevronUp,
   Sparkles,
   KeyRound,
+  Download,
+  ExternalLink,
+  Image as ImageIcon,
 } from "lucide-react";
 
 interface QRLoginModalProps {
@@ -121,6 +124,16 @@ export function QRLoginModal({ isOpen, onClose, onSuccess }: QRLoginModalProps) 
     setQrImage(null);
     const socket = getSocket();
     socket.emit("request_qr_login");
+  };
+
+  const handleDownloadQR = () => {
+    if (!qrImage) return;
+    const link = document.createElement("a");
+    link.href = qrImage;
+    link.download = `zalo-qr-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleCookieLogin = async (e: React.FormEvent) => {
@@ -229,18 +242,47 @@ export function QRLoginModal({ isOpen, onClose, onSuccess }: QRLoginModalProps) 
               )}
 
               {status === "QR_PENDING" && qrImage && (
-                <div className="flex flex-col items-center animate-in zoom-in-95 duration-200">
+                <div className="flex flex-col items-center w-full animate-in zoom-in-95 duration-200">
                   <div className="p-3 bg-white rounded-2xl shadow-md border-2 border-dashed border-blue-200 relative group">
                     <img
                       src={qrImage}
                       alt="Zalo QR Code"
-                      className="w-64 h-64 object-contain rounded-xl"
+                      className="w-60 h-60 object-contain rounded-xl"
                     />
                   </div>
 
-                  <div className="mt-4 flex items-center space-x-2 text-xs text-slate-600 bg-blue-50/80 px-3.5 py-2 rounded-full border border-blue-100">
-                    <Smartphone className="w-4 h-4 text-blue-600 animate-pulse shrink-0" />
-                    <span>Mở Zalo trên điện thoại &gt; Bấm biểu tượng <strong>Quét mã QR</strong></span>
+                  {/* Quick Action Buttons for Mobile */}
+                  <div className="flex items-center gap-2 mt-3 w-full max-w-xs">
+                    <button
+                      type="button"
+                      onClick={handleDownloadQR}
+                      className="flex-1 flex items-center justify-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 px-3 rounded-xl text-xs font-semibold border border-slate-200 transition-all shadow-sm active:scale-95"
+                      title="Lưu ảnh QR vào thư viện máy để quét"
+                    >
+                      <Download className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Tải ảnh QR</span>
+                    </button>
+                    <a
+                      href="zalo://"
+                      className="flex-1 flex items-center justify-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-xl text-xs font-semibold transition-all shadow-md shadow-blue-500/20 active:scale-95"
+                      title="Mở ứng dụng Zalo trên điện thoại này"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Mở app Zalo</span>
+                    </a>
+                  </div>
+
+                  {/* 1-Phone Instruction Card */}
+                  <div className="mt-3.5 w-full max-w-sm bg-gradient-to-br from-blue-50 to-indigo-50/50 p-3 rounded-2xl border border-blue-100/80 text-left text-[11px] text-slate-700 space-y-1.5 shadow-sm">
+                    <div className="flex items-center space-x-1.5 font-bold text-blue-700">
+                      <Smartphone className="w-3.5 h-3.5 shrink-0" />
+                      <span>Nếu bạn chỉ dùng 1 chiếc điện thoại duy nhất:</span>
+                    </div>
+                    <ol className="list-decimal list-inside space-y-1 text-slate-600 pl-1 leading-relaxed">
+                      <li>Bấm <strong>"Tải ảnh QR"</strong> ở trên (hoặc chụp màn hình lại).</li>
+                      <li>Bấm <strong>"Mở app Zalo"</strong> &gt; Bấm biểu tượng <strong>Quét QR</strong> ở góc trên bên phải thanh tìm kiếm.</li>
+                      <li>Bấm biểu tượng <strong>🖼️ Thư viện ảnh</strong> (chọn ảnh mã QR vừa lưu) rồi bấm <strong>Xác nhận đăng nhập</strong> là xong!</li>
+                    </ol>
                   </div>
                 </div>
               )}
