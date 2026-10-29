@@ -13,7 +13,7 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
-    "create-admin": "tsx src/scripts/create-admin.ts"
+    "create-admin": "node dist/scripts/create-admin.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
