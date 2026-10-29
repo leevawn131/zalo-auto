@@ -67,6 +67,56 @@ describe("RuleMatcher", () => {
     expect(res.matched).toBe(false);
   });
 
+  it("should match multiple keywords separated by commas or pipes", () => {
+    const multiKeywordRules: RuleDefinition[] = [
+      {
+        id: "multi_contains",
+        keyword: "stk, số tài khoản, qr, chuyển khoản",
+        matchType: MatchType.CONTAINS,
+        replyMessage: "STK: 123456789 - MB Bank - NGUYEN VAN A",
+        isEnabled: true,
+        priority: 10,
+      },
+      {
+        id: "multi_exact",
+        keyword: "menu | bảng giá",
+        matchType: MatchType.EXACT,
+        replyMessage: "Menu hôm nay gồm: Phở, Bún bò",
+        isEnabled: true,
+        priority: 10,
+      },
+    ];
+
+    // Test first keyword in list
+    const res1 = matcher.match("Cho mình xin stk với", multiKeywordRules);
+    expect(res1.matched).toBe(true);
+    expect(res1.ruleId).toBe("multi_contains");
+    expect(res1.replyText).toContain("MB Bank");
+
+    // Test second keyword in list
+    const res2 = matcher.match("số tài khoản của shop là gì", multiKeywordRules);
+    expect(res2.matched).toBe(true);
+    expect(res2.ruleId).toBe("multi_contains");
+
+    // Test third keyword
+    const res3 = matcher.match("gửi mã qr mình quét", multiKeywordRules);
+    expect(res3.matched).toBe(true);
+    expect(res3.ruleId).toBe("multi_contains");
+
+    // Test EXACT with pipe
+    const resExact1 = matcher.match("menu", multiKeywordRules);
+    expect(resExact1.matched).toBe(true);
+    expect(resExact1.ruleId).toBe("multi_exact");
+
+    const resExact2 = matcher.match("Bảng Giá", multiKeywordRules);
+    expect(resExact2.matched).toBe(true);
+    expect(resExact2.ruleId).toBe("multi_exact");
+
+    // Should not match exact if extra text present
+    const resExactFail = matcher.match("xem menu nhé", multiKeywordRules);
+    expect(resExactFail.matched).toBe(false);
+  });
+
   it("should safely handle invalid or ReDoS regex patterns without throwing", () => {
     const dangerousRules: RuleDefinition[] = [
       {
@@ -90,5 +140,55 @@ describe("RuleMatcher", () => {
     expect(() => matcher.match("aaaaaaaaaaaaa", dangerousRules)).not.toThrow();
     const res = matcher.match("aaaaaaaaaaaaa", dangerousRules);
     expect(res.matched).toBe(false);
+  });
+
+  it("should match multiple keywords separated by commas or pipes", () => {
+    const multiKeywordRules: RuleDefinition[] = [
+      {
+        id: "multi_contains",
+        keyword: "stk, số tài khoản, qr, chuyển khoản",
+        matchType: MatchType.CONTAINS,
+        replyMessage: "STK: 123456789 - MB Bank - NGUYEN VAN A",
+        isEnabled: true,
+        priority: 10,
+      },
+      {
+        id: "multi_exact",
+        keyword: "menu | bảng giá",
+        matchType: MatchType.EXACT,
+        replyMessage: "Menu hôm nay gồm: Phở, Bún bò",
+        isEnabled: true,
+        priority: 10,
+      },
+    ];
+
+    // Test first keyword in list
+    const res1 = matcher.match("Cho mình xin stk với", multiKeywordRules);
+    expect(res1.matched).toBe(true);
+    expect(res1.ruleId).toBe("multi_contains");
+    expect(res1.replyText).toContain("MB Bank");
+
+    // Test second keyword in list
+    const res2 = matcher.match("số tài khoản của shop là gì", multiKeywordRules);
+    expect(res2.matched).toBe(true);
+    expect(res2.ruleId).toBe("multi_contains");
+
+    // Test third keyword
+    const res3 = matcher.match("gửi mã qr mình quét", multiKeywordRules);
+    expect(res3.matched).toBe(true);
+    expect(res3.ruleId).toBe("multi_contains");
+
+    // Test EXACT with pipe
+    const resExact1 = matcher.match("menu", multiKeywordRules);
+    expect(resExact1.matched).toBe(true);
+    expect(resExact1.ruleId).toBe("multi_exact");
+
+    const resExact2 = matcher.match("Bảng Giá", multiKeywordRules);
+    expect(resExact2.matched).toBe(true);
+    expect(resExact2.ruleId).toBe("multi_exact");
+
+    // Should not match exact if extra text present
+    const resExactFail = matcher.match("xem menu nhé", multiKeywordRules);
+    expect(resExactFail.matched).toBe(false);
   });
 });

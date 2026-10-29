@@ -33,18 +33,39 @@ export class RuleMatcher {
     return { matched: false, reason: "No matching rule found" };
   }
 
+  private parseKeywords(raw: string): string[] {
+    return raw
+      .split(/[,|\n]+/)
+      .map((k) => k.trim())
+      .filter((k) => k.length > 0);
+  }
+
   private evaluateRule(text: string, rule: RuleDefinition): boolean {
     const rawKeyword = rule.keyword.trim();
+    const keywords = this.parseKeywords(rawKeyword);
 
     switch (rule.matchType) {
-      case MatchType.EXACT:
-        return text.localeCompare(rawKeyword, undefined, { sensitivity: "accent" }) === 0;
+      case MatchType.EXACT: {
+        if (keywords.length === 0) {
+          return text.localeCompare(rawKeyword, undefined, { sensitivity: "accent" }) === 0;
+        }
+        return keywords.some(
+          (kw) => text.localeCompare(kw, undefined, { sensitivity: "accent" }) === 0
+        );
+      }
 
-      case MatchType.CONTAINS:
-        return text.toLowerCase().includes(rawKeyword.toLowerCase());
+      case MatchType.CONTAINS: {
+        if (keywords.length === 0) {
+          return text.toLowerCase().includes(rawKeyword.toLowerCase());
+        }
+        return keywords.some((kw) => text.toLowerCase().includes(kw.toLowerCase()));
+      }
 
-      case MatchType.REGEX:
-        return this.safeRegexMatch(text, rawKeyword);
+      case MatchType.REGEX: {
+        const patterns =
+          rawKeyword.includes("\n") || rawKeyword.includes(",") ? keywords : [rawKeyword];
+        return patterns.some((p) => this.safeRegexMatch(text, p));
+      }
 
       default:
         return text.toLowerCase().includes(rawKeyword.toLowerCase());

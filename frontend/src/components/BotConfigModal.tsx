@@ -17,6 +17,8 @@ import {
   Upload,
   Link as LinkIcon,
   ExternalLink,
+  Pencil,
+  Tag,
 } from "lucide-react";
 
 interface Rule {
@@ -60,7 +62,8 @@ export function BotConfigModal({
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<"rules" | "settings">("rules");
 
-  // New rule form
+  // New / editing rule form
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [newKeyword, setNewKeyword] = useState("");
   const [newMatchType, setNewMatchType] = useState<"EXACT" | "CONTAINS" | "REGEX">("CONTAINS");
   const [newReplyMessage, setNewReplyMessage] = useState("");
@@ -181,7 +184,27 @@ export function BotConfigModal({
     }
   };
 
-  const handleAddRule = async (e: React.FormEvent) => {
+  const handleStartEdit = (rule: Rule) => {
+    setEditingRuleId(rule.id);
+    setNewKeyword(rule.keyword);
+    setNewMatchType(rule.matchType);
+    setNewReplyMessage(rule.replyMessage || "");
+    setNewReplyImageUrl(rule.replyImageUrl || "");
+    setNewPriority(rule.priority || 0);
+    setUploadError(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRuleId(null);
+    setNewKeyword("");
+    setNewMatchType("CONTAINS");
+    setNewReplyMessage("");
+    setNewReplyImageUrl("");
+    setNewPriority(0);
+    setUploadError(null);
+  };
+
+  const handleSubmitRule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accountId || !newKeyword.trim()) return;
 
@@ -191,33 +214,61 @@ export function BotConfigModal({
     }
 
     try {
-      const res = await fetchWithAuth(`/api/zalo/accounts/${accountId}/rules`, {
-        method: "POST",
-        body: JSON.stringify({
-          keyword: newKeyword.trim(),
-          matchType: newMatchType,
-          replyMessage: newReplyMessage.trim(),
-          replyImageUrl: newReplyImageUrl.trim() || null,
-          priority: newPriority,
-          isEnabled: true,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setConfig((prev) =>
-          prev ? { ...prev, rules: [data.rule, ...prev.rules] } : null
-        );
-        setNewKeyword("");
-        setNewReplyMessage("");
-        setNewReplyImageUrl("");
-        setNewPriority(0);
-        setUploadError(null);
+      if (editingRuleId) {
+        // Cập nhật quy tắc hiện có
+        const res = await fetchWithAuth(`/api/zalo/accounts/${accountId}/rules/${editingRuleId}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            keyword: newKeyword.trim(),
+            matchType: newMatchType,
+            replyMessage: newReplyMessage.trim(),
+            replyImageUrl: newReplyImageUrl.trim() || null,
+            priority: newPriority,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setConfig((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  rules: prev.rules.map((r) => (r.id === editingRuleId ? data.rule : r)),
+                }
+              : null
+          );
+          handleCancelEdit();
+        } else {
+          const errData = await res.json();
+          alert(errData.error || "Cập nhật quy tắc thất bại");
+        }
       } else {
-        const errData = await res.json();
-        alert(errData.error || "Thêm quy tắc thất bại");
+        // Thêm mới quy tắc
+        const res = await fetchWithAuth(`/api/zalo/accounts/${accountId}/rules`, {
+          method: "POST",
+          body: JSON.stringify({
+            keyword: newKeyword.trim(),
+            matchType: newMatchType,
+            replyMessage: newReplyMessage.trim(),
+            replyImageUrl: newReplyImageUrl.trim() || null,
+            priority: newPriority,
+            isEnabled: true,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setConfig((prev) =>
+            prev ? { ...prev, rules: [data.rule, ...prev.rules] } : null
+          );
+          handleCancelEdit();
+        } else {
+          const errData = await res.json();
+          alert(errData.error || "Thêm quy tắc thất bại");
+        }
       }
     } catch (err) {
-      console.error("Failed to add rule", err);
+      console.error("Failed to save rule", err);
     }
   };
 
@@ -341,31 +392,94 @@ export function BotConfigModal({
             </div>
           ) : activeTab === "rules" ? (
             <div className="space-y-6">
-              {/* Add New Rule Form */}
+              {/* Add / Edit Rule Form */}
               <form
-                onSubmit={handleAddRule}
-                className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 space-y-3"
+                onSubmit={handleSubmitRule}
+                className={`p-4 rounded-2xl border transition-all space-y-3 ${
+                  editingRuleId
+                    ? "bg-amber-50/70 border-amber-300 shadow-sm"
+                    : "bg-blue-50/50 border-blue-100"
+                }`}
               >
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-blue-900 flex items-center space-x-1.5">
-                    <Plus className="w-4 h-4 text-blue-600" />
-                    <span>Thêm quy tắc trả lời mới (Hỗ trợ tin nhắn &amp; hình ảnh)</span>
+                  <h4
+                    className={`text-xs font-bold flex items-center space-x-1.5 ${
+                      editingRuleId ? "text-amber-900" : "text-blue-900"
+                    }`}
+                  >
+                    {editingRuleId ? (
+                      <>
+                        <Pencil className="w-4 h-4 text-amber-600" />
+                        <span>Chỉnh sửa quy tắc trả lời</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 text-blue-600" />
+                        <span>Thêm quy tắc trả lời mới (Hỗ trợ nhiều từ khóa)</span>
+                      </>
+                    )}
                   </h4>
+
+                  {editingRuleId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 transition-colors shadow-2xs"
+                    >
+                      Hủy sửa
+                    </button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      Từ khóa (Keyword) <span className="text-red-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-semibold text-slate-700">
+                        Từ khóa (Keyword) <span className="text-red-500">*</span>
+                      </label>
+                      <span className="text-[10px] text-slate-400">
+                        Cách nhau bằng dấu phẩy (,)
+                      </span>
+                    </div>
                     <input
                       type="text"
                       required
-                      placeholder="Ví dụ: tư vấn, bảng giá, menu, chào bạn"
+                      placeholder="Ví dụ: stk, số tài khoản, qr, bank"
                       value={newKeyword}
                       onChange={(e) => setNewKeyword(e.target.value)}
-                      className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
                     />
+
+                    {/* Preview parsed keywords tags */}
+                    {newKeyword
+                      .split(/[,|\n]+/)
+                      .map((k) => k.trim())
+                      .filter((k) => k.length > 0).length > 1 && (
+                      <div className="flex items-center space-x-1.5 flex-wrap gap-y-1 mt-1.5">
+                        <span className="text-[10px] text-blue-700 font-medium">
+                          Sẽ nhận diện{" "}
+                          {
+                            newKeyword
+                              .split(/[,|\n]+/)
+                              .map((k) => k.trim())
+                              .filter((k) => k.length > 0).length
+                          }{" "}
+                          từ khóa riêng biệt:
+                        </span>
+                        {newKeyword
+                          .split(/[,|\n]+/)
+                          .map((k) => k.trim())
+                          .filter((k) => k.length > 0)
+                          .map((kw, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-100 text-blue-800 border border-blue-200"
+                            >
+                              #{kw}
+                            </span>
+                          ))}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -393,7 +507,7 @@ export function BotConfigModal({
                     placeholder="Nhập nội dung bot trả lời (có thể để trống nếu chỉ muốn gửi ảnh)..."
                     value={newReplyMessage}
                     onChange={(e) => setNewReplyMessage(e.target.value)}
-                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none bg-white"
                   />
                 </div>
 
@@ -484,16 +598,31 @@ export function BotConfigModal({
                       type="number"
                       value={newPriority}
                       onChange={(e) => setNewPriority(parseInt(e.target.value, 10) || 0)}
-                      className="w-16 text-xs px-2 py-1 border border-slate-200 rounded-lg text-center"
+                      className="w-16 text-xs px-2 py-1 border border-slate-200 rounded-lg text-center bg-white"
                     />
                   </div>
 
-                  <button
-                    type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-xl font-medium transition-colors shadow-sm shadow-blue-500/20"
-                  >
-                    Lưu quy tắc
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    {editingRuleId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="bg-white hover:bg-slate-100 text-slate-600 text-xs px-3 py-2 rounded-xl font-medium transition-colors border border-slate-200"
+                      >
+                        Hủy
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      className={`${
+                        editingRuleId
+                          ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/20"
+                          : "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20"
+                      } text-white text-xs px-4 py-2 rounded-xl font-medium transition-colors shadow-sm`}
+                    >
+                      {editingRuleId ? "Lưu thay đổi" : "Lưu quy tắc"}
+                    </button>
+                  </div>
                 </div>
               </form>
 
@@ -506,82 +635,123 @@ export function BotConfigModal({
                     Chưa có từ khóa nào. Hãy tạo từ khóa đầu tiên ở trên!
                   </div>
                 ) : (
-                  config?.rules.map((rule) => (
-                    <div
-                      key={rule.id}
-                      className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-sm flex items-start justify-between gap-3 hover:border-slate-300 transition-all"
-                    >
-                      <div className="flex-1 space-y-1.5">
-                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                          <span className="font-semibold text-slate-800 text-xs">{rule.keyword}</span>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">
-                            {rule.matchType === "CONTAINS"
-                              ? "Chứa từ"
-                              : rule.matchType === "EXACT"
-                              ? "Chính xác"
-                              : "Regex"}
-                          </span>
-                          {rule.replyImageUrl && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center space-x-1">
-                              <ImageIcon className="w-2.5 h-2.5" />
-                              <span>Có hình ảnh</span>
+                  config?.rules.map((rule) => {
+                    const ruleKeywords = rule.keyword
+                      .split(/[,|\n]+/)
+                      .map((k) => k.trim())
+                      .filter((k) => k.length > 0);
+
+                    return (
+                      <div
+                        key={rule.id}
+                        className={`p-3.5 bg-white rounded-xl border shadow-sm flex items-start justify-between gap-3 transition-all ${
+                          editingRuleId === rule.id
+                            ? "border-amber-400 ring-2 ring-amber-200 bg-amber-50/20"
+                            : "border-slate-200 hover:border-slate-300"
+                        }`}
+                      >
+                        <div className="flex-1 space-y-1.5">
+                          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                            <div className="flex items-center space-x-1 flex-wrap gap-1">
+                              {ruleKeywords.map((kw, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200/60"
+                                >
+                                  #{kw}
+                                </span>
+                              ))}
+                            </div>
+
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">
+                              {rule.matchType === "CONTAINS"
+                                ? "Chứa từ"
+                                : rule.matchType === "EXACT"
+                                ? "Chính xác"
+                                : "Regex"}
                             </span>
+                            {rule.replyImageUrl && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center space-x-1">
+                                <ImageIcon className="w-2.5 h-2.5" />
+                                <span>Có hình ảnh</span>
+                              </span>
+                            )}
+                            {rule.priority > 0 && (
+                              <span className="text-[10px] text-blue-600 font-medium">
+                                Ưu tiên: {rule.priority}
+                              </span>
+                            )}
+                          </div>
+
+                          {rule.replyMessage && (
+                            <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg leading-relaxed whitespace-pre-wrap">
+                              {rule.replyMessage}
+                            </p>
                           )}
-                          {rule.priority > 0 && (
-                            <span className="text-[10px] text-blue-600 font-medium">
-                              Ưu tiên: {rule.priority}
-                            </span>
+
+                          {rule.replyImageUrl && (
+                            <div className="flex items-center space-x-2 pt-1">
+                              <a
+                                href={formatImageUrl(rule.replyImageUrl)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="group relative inline-block"
+                              >
+                                <img
+                                  src={formatImageUrl(rule.replyImageUrl)}
+                                  alt="Rule attachment"
+                                  className="w-16 h-16 object-cover rounded-lg border border-slate-200 group-hover:opacity-90 transition-opacity"
+                                />
+                                <div className="absolute inset-0 bg-black/30 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </div>
+                              </a>
+                              <span className="text-[10px] text-slate-400">Bấm để phóng to ảnh</span>
+                            </div>
                           )}
                         </div>
 
-                        {rule.replyMessage && (
-                          <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg leading-relaxed">
-                            {rule.replyMessage}
-                          </p>
-                        )}
+                        <div className="flex items-center space-x-1.5 flex-shrink-0 pt-1">
+                          {/* Sửa quy tắc */}
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(rule)}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              editingRuleId === rule.id
+                                ? "bg-amber-100 text-amber-700"
+                                : "text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                            }`}
+                            title="Chỉnh sửa quy tắc này"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
 
-                        {rule.replyImageUrl && (
-                          <div className="flex items-center space-x-2 pt-1">
-                            <a
-                              href={formatImageUrl(rule.replyImageUrl)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="group relative inline-block"
-                            >
-                              <img
-                                src={formatImageUrl(rule.replyImageUrl)}
-                                alt="Rule attachment"
-                                className="w-16 h-16 object-cover rounded-lg border border-slate-200 group-hover:opacity-90 transition-opacity"
-                              />
-                              <div className="absolute inset-0 bg-black/30 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </div>
-                            </a>
-                            <span className="text-[10px] text-slate-400">Bấm để phóng to ảnh</span>
-                          </div>
-                        )}
-                      </div>
+                          {/* Bật / Tắt */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleRule(rule.id, rule.isEnabled)}
+                            className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                              rule.isEnabled
+                                ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                            }`}
+                          >
+                            {rule.isEnabled ? "Bật" : "Tắt"}
+                          </button>
 
-                      <div className="flex items-center space-x-2 flex-shrink-0 pt-1">
-                        <button
-                          onClick={() => handleToggleRule(rule.id, rule.isEnabled)}
-                          className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
-                            rule.isEnabled
-                              ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                              : "bg-slate-100 text-slate-400 hover:bg-slate-200"
-                          }`}
-                        >
-                          {rule.isEnabled ? "Bật" : "Tắt"}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteRule(rule.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          {/* Xóa */}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRule(rule.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Xóa quy tắc"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
