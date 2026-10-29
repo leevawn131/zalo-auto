@@ -246,6 +246,36 @@ export function createAutoReplyController(): Router {
   });
 
   /**
+   * GET /api/zalo/accounts/:id/threads (Conversation threads grouped by user/group)
+   */
+  router.get("/accounts/:id/threads", async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const accountId = req.params.id;
+      const type = req.query.type as "ALL" | "USER" | "GROUP" | undefined;
+      const search = req.query.search as string | undefined;
+
+      const result = await messageLogger.getConversationThreads(accountId, userId, {
+        type,
+        search,
+      });
+
+      if (!result) {
+        res.status(404).json({ error: "Account not found" });
+        return;
+      }
+
+      res.json(result);
+    } catch (err) {
+      if (err instanceof TenantAccessDeniedError) {
+        res.status(403).json({ error: "Access denied" });
+        return;
+      }
+      res.status(500).json({ error: "Failed to fetch conversation threads" });
+    }
+  });
+
+  /**
    * GET /api/zalo/accounts/:id/messages (Anti-revoke audit log & history)
    */
   router.get("/accounts/:id/messages", async (req: AuthenticatedRequest, res: Response) => {

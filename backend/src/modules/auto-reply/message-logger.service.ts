@@ -133,6 +133,121 @@ export class MessageLoggerService {
       messages,
     };
   }
+
+  /**
+   * Retrieve conversation threads grouped by user / group
+   */
+  public async getConversationThreads(
+    accountId: string,
+    userId: string,
+    options: {
+      type?: "ALL" | "USER" | "GROUP";
+      search?: string;
+    } = {}
+  ) {
+    const account = await prisma.zaloAccount.findUnique({
+      where: { id: accountId },
+    });
+
+    if (!account) return null;
+    if (account.userId !== userId) {
+      throw new TenantAccessDeniedError(userId, accountId);
+    }
+
+    const where = {
+      accountId,
+      ...(options.type && options.type !== "ALL" ? { threadType: options.type } : {}),
+    };
+
+    const threadGroups = await prisma.messageEvent.groupBy({
+      by: ["threadId", "threadType"],
+      where,
+      _count: { id: true },
+      _max: { createdAt: true },
+      orderBy: {
+        _max: { createdAt: "desc" },
+      },
+    });
+
+    const threads = await Promise.all(
+      threadGroups.map(async (group) => {
+        const [latestMsg, latestOtherMsg, botCount, revokedCount] = await Promise.all([
+          prisma.messageEvent.findFirst({
+            where: { accountId, threadId: group.threadId },
+            orderBy: { createdAt: "desc" },
+          }),
+          prisma.messageEvent.findFirst({
+            where: { accountId, threadId: group.threadId, isSelf: false },
+            orderBy: { createdAt: "desc" },
+          }),
+          prisma.messageEvent.count({
+            where: { accountId, threadId: group.threadId, isSelf: true },
+          }),
+          prisma.messageEvent.count({
+            where: { accountId, threadId: group.threadId, isRevoked: true },
+          }),
+        ]);
+
+        let name = "";
+        if (group.threadType === "USER") {
+          name = latestOtherMsg?.senderName || latestMsg?.senderName || `Khách hàng (${group.threadId.slice(-4)})`;
+        } else {
+          name = `Nhóm ${group.threadId.slice(-4)}`;
+          if (latestMsg?.rawPayload) {
+            try {
+              const parsed = JSON.parse(latestMsg.rawPayload);
+              if (parsed.groupName || parsed.gName || parsed.title) {
+                name = parsed.groupName || parsed.gName || parsed.title;
+              }
+            } catch {}
+          }
+          if (name === `Nhóm ${group.threadId.slice(-4)}` && latestOtherMsg?.senderName) {
+            name = `Nhóm (${latestOtherMsg.senderName}...)`;
+          }
+        }
+
+        const totalMessages = group._count.id;
+        const userMessages = totalMessages - botCount;
+
+        return {
+          threadId: group.threadId,
+          threadType: group.threadType as "USER" | "GROUP",
+          name,
+          totalMessages,
+          botMessages: botCount,
+          userMessages,
+          revokedCount,
+          lastMessage: latestMsg
+            ? {
+                content: latestMsg.content,
+                createdAt: latestMsg.createdAt.toISOString(),
+                isSelf: latestMsg.isSelf,
+                isRevoked: latestMsg.isRevoked,
+                senderName: latestMsg.senderName || (latestMsg.isSelf ? "Bot" : "Khách"),
+              }
+            : null,
+          updatedAt: group._max.createdAt ? group._max.createdAt.toISOString() : new Date().toISOString(),
+        };
+      })
+    );
+
+    let result = threads;
+    if (options.search && options.search.trim()) {
+      const q = options.search.trim().toLowerCase();
+      result = threads.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.threadId.toLowerCase().includes(q) ||
+          (t.lastMessage?.content && t.lastMessage.content.toLowerCase().includes(q))
+      );
+    }
+
+    return {
+      threads: result,
+      totalThreads: result.length,
+      totalMessages: threads.reduce((acc, t) => acc + t.totalMessages, 0),
+    };
+  }
 }
 
 export const messageLogger = new MessageLoggerService();
