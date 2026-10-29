@@ -263,4 +263,70 @@ describe("ZaloAuthService (QR Lifecycle, Restoration & Reconnection)", () => {
       "AbnormalClosure"
     );
   });
+
+  describe("loginWithCredentials & parseCredentialsInput", () => {
+    it("should parse raw cookie string correctly", () => {
+      const creds = authService.parseCredentialsInput("zpw_sek=secret123; _zlang=vi");
+      expect(creds.imei).toBeDefined();
+      expect(creds.userAgent).toContain("Mozilla");
+      expect(creds.cookie).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ key: "zpw_sek", value: "secret123" }),
+          expect.objectContaining({ key: "_zlang", value: "vi" }),
+        ])
+      );
+    });
+
+    it("should parse JSON cookie array correctly", () => {
+      const jsonStr = JSON.stringify([{ name: "zpw_sek", value: "token456" }]);
+      const creds = authService.parseCredentialsInput(jsonStr);
+      expect(creds.cookie).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ key: "zpw_sek", value: "token456" }),
+        ])
+      );
+    });
+
+    it("should parse full credentials JSON correctly", () => {
+      const fullJson = JSON.stringify({
+        imei: "custom_imei_123",
+        userAgent: "CustomUA/1.0",
+        cookie: [{ key: "zpw_sek", value: "token789" }],
+      });
+      const creds = authService.parseCredentialsInput(fullJson);
+      expect(creds.imei).toBe("custom_imei_123");
+      expect(creds.userAgent).toBe("CustomUA/1.0");
+      expect(creds.cookie).toEqual([{ key: "zpw_sek", value: "token789" }]);
+    });
+
+    it("should successfully authenticate via loginWithCredentials", async () => {
+      const mockApi = new MockAPI();
+      adapter.loginMock.mockResolvedValue(mockApi);
+
+      const result = await authService.loginWithCredentials("user_test", {
+        cookieData: "zpw_sek=valid_token; _zlang=vi",
+      });
+
+      expect(result.account).toBeDefined();
+      expect(result.account.id).toBe("acc_123");
+      expect(result.account.status).toBe(ZaloAccountStatus.ONLINE);
+      expect(mockSessionService.saveSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: "user_test",
+          zaloId: "zalo_uid_mock_999",
+        })
+      );
+      expect(mockApi.listener.start).toHaveBeenCalled();
+    });
+
+    it("should throw meaningful error if adapter.login fails during cookie login", async () => {
+      adapter.loginMock.mockRejectedValue(new Error("Cookie expired"));
+
+      await expect(
+        authService.loginWithCredentials("user_test", {
+          cookieData: "zpw_sek=expired_token",
+        })
+      ).rejects.toThrow("Đăng nhập bằng Cookie thất bại");
+    });
+  });
 });

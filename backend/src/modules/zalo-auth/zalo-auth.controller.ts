@@ -94,6 +94,49 @@ export function createZaloAuthController(
   });
 
   /**
+   * Login directly using Cookie or full Credentials JSON
+   */
+  router.post("/accounts/cookie/login", requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+
+      // Enforce plan max bot accounts limit
+      const limitCheck = await sePayService.canUserAddAccount(userId);
+      if (!limitCheck.allowed) {
+        res.status(403).json({
+          error: "MAX_BOTS_EXCEEDED",
+          message: limitCheck.reason,
+          maxBots: limitCheck.maxBots,
+          currentCount: limitCheck.currentCount,
+        });
+        return;
+      }
+
+      const { cookieData, imei, userAgent } = req.body;
+      if (!cookieData || typeof cookieData !== "string" || !cookieData.trim()) {
+        res.status(400).json({ error: "Vui lòng dán chuỗi Cookie hoặc JSON Credentials hợp lệ." });
+        return;
+      }
+
+      const result = await service.loginWithCredentials(userId, {
+        cookieData: cookieData.trim(),
+        imei: typeof imei === "string" ? imei.trim() : undefined,
+        userAgent: typeof userAgent === "string" ? userAgent.trim() : undefined,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Đăng nhập Zalo bằng Cookie thành công!",
+        account: result.account,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error({ err }, "Failed to login with cookie");
+      res.status(400).json({ error: msg });
+    }
+  });
+
+  /**
    * Reconnect an existing account using saved encrypted session
    */
   router.post("/accounts/:id/reconnect", requireActiveSubscription, async (req: AuthenticatedRequest, res: Response) => {

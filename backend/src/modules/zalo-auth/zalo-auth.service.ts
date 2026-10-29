@@ -467,6 +467,181 @@ export class ZaloAuthService {
     this.activeConnections.delete(accountId);
   }
 
+  /**
+   * Parse various cookie/credentials input formats:
+   * 1. Full JSON Credentials: { imei, cookie, userAgent }
+   * 2. Cookie JSON array: [ { name, value, domain }, ... ]
+   * 3. Object with cookies property: { cookies: [ ... ] }
+   * 4. Raw cookie string: zpw_sek=xxx; _zlang=vi
+   */
+  public parseCredentialsInput(
+    cookieData: string,
+    customImei?: string,
+    customUserAgent?: string
+  ): ZaloCredentials {
+    let raw = cookieData.trim();
+    if (raw.startsWith("```")) {
+      raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    }
+
+    const defaultUA =
+      customUserAgent?.trim() ||
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
+
+    const defaultImei =
+      customImei?.trim() ||
+      `${crypto.randomUUID()}-${crypto.createHash("md5").update(defaultUA).digest("hex")}`;
+
+    if (raw.startsWith("{") || raw.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(raw);
+
+        // Case 1: Full credentials object
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.cookie) {
+          const cookieArr = Array.isArray(parsed.cookie)
+            ? parsed.cookie
+            : parsed.cookie.cookies || [];
+          return {
+            imei: parsed.imei || defaultImei,
+            userAgent: parsed.userAgent || defaultUA,
+            cookie: cookieArr,
+            language: parsed.language || "vi",
+          };
+        }
+
+        // Case 2: Object with cookies property { cookies: [...] }
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.cookies) {
+          return {
+            imei: defaultImei,
+            userAgent: defaultUA,
+            cookie: parsed.cookies,
+            language: "vi",
+          };
+        }
+
+        // Case 3: Direct array of cookie objects [ { name, value }, ... ]
+        if (Array.isArray(parsed)) {
+          const normalized = parsed.map((c: any) => ({
+            key: c.key || c.name,
+            name: c.name || c.key,
+            value: String(c.value ?? ""),
+            domain: (c.domain || "chat.zalo.me").replace(/^\./, ""),
+            path: c.path || "/",
+          }));
+          return {
+            imei: defaultImei,
+            userAgent: defaultUA,
+            cookie: normalized,
+            language: "vi",
+          };
+        }
+      } catch {
+        // Fall back to raw string parser
+      }
+    }
+
+    // Case 4: Raw cookie string: zpw_sek=xxx; _zlang=vi
+    const pairs = raw.split(";").map((p) => p.trim()).filter(Boolean);
+    if (pairs.length === 0) {
+      throw new ZaloAuthError("Định dạng Cookie không hợp lệ.");
+    }
+
+    const cookies = pairs.map((p) => {
+      const idx = p.indexOf("=");
+      const name = idx > -1 ? p.slice(0, idx).trim() : p.trim();
+      const value = idx > -1 ? p.slice(idx + 1).trim() : "";
+      return {
+        key: name,
+        name: name,
+        value,
+        domain: "chat.zalo.me",
+        path: "/",
+      };
+    });
+
+    return {
+      imei: defaultImei,
+      userAgent: defaultUA,
+      cookie: cookies,
+      language: "vi",
+    };
+  }
+
+  /**
+   * Directly authenticate a Zalo account via Cookie / Session credentials
+   */
+  public async loginWithCredentials(
+    userId: string,
+    params: {
+      cookieData: string;
+      imei?: string;
+      userAgent?: string;
+    }
+  ): Promise<{ account: any }> {
+    const { cookieData, imei, userAgent } = params;
+    if (!cookieData || !cookieData.trim()) {
+      throw new ZaloAuthError("Vui lòng cung cấp chuỗi Cookie hoặc JSON Credentials.");
+    }
+
+    const credentials = this.parseCredentialsInput(cookieData, imei, userAgent);
+
+    const cookieList = Array.isArray(credentials.cookie)
+      ? credentials.cookie
+      : (credentials.cookie as any)?.cookies || [];
+    if (cookieList.length === 0) {
+      throw new ZaloAuthError("Không tìm thấy dữ liệu cookie hợp lệ.");
+    }
+
+    let api: API;
+    try {
+      api = await this.adapter.login(credentials);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn({ err, userId }, "Failed to login with provided credentials");
+      throw new ZaloAuthError(
+        `Đăng nhập bằng Cookie thất bại: ${msg}. Vui lòng kiểm tra lại Cookie hoặc lấy Cookie mới từ chat.zalo.me`
+      );
+    }
+
+    const uid = typeof api.getOwnId === "function" ? api.getOwnId() : "unknown_zalo_uid";
+    let displayName = `Zalo User (${uid})`;
+    let avatar: string | undefined = undefined;
+
+    try {
+      if (typeof (api as any).fetchAccountInfo === "function") {
+        const profileRes = await (api as any).fetchAccountInfo();
+        if (profileRes?.profile) {
+          displayName = profileRes.profile.displayName || profileRes.profile.zaloName || displayName;
+          avatar = profileRes.profile.avatar;
+        }
+      }
+    } catch (e) {
+      logger.warn({ e }, "Could not fetch profile info during cookie login, using defaults");
+    }
+
+    // Encrypt and persist session
+    const account = await this.sessionSvc.saveSession({
+      userId,
+      zaloId: uid,
+      displayName,
+      avatar,
+      credentials,
+    });
+
+    // Bind active socket and auto-reply
+    this.bindActiveConnection(account.id, userId, api);
+
+    return {
+      account: {
+        id: account.id,
+        zaloId: uid,
+        displayName,
+        avatar,
+        status: ZaloAccountStatus.ONLINE,
+      },
+    };
+  }
+
   public getActiveConnection(accountId: string): ActiveConnection | undefined {
     return this.activeConnections.get(accountId);
   }
