@@ -383,28 +383,29 @@ export function QRLoginModal({ isOpen, onClose, onSuccess }: QRLoginModalProps) 
 
                 {showGuide ? (
                   <div className="bg-white/90 p-3 rounded-xl border border-indigo-200/80 text-[11px] space-y-1.5 text-slate-700">
-                    <p className="font-semibold text-indigo-700">📌 3 bước lấy Cookie trên máy tính:</p>
+                    <p className="font-semibold text-indigo-700">📌 Cách lấy Cookie siêu nhanh (Hỗ trợ tự nhận diện 100%):</p>
                     <p>1. Mở trình duyệt truy cập và đăng nhập vào: <strong>chat.zalo.me</strong></p>
                     <p>2. Bấm phím <strong>F12</strong> (hoặc chuột phải chọn <em>Kiểm tra / Inspect</em>) &gt; Chọn tab <strong>Application (Ứng dụng)</strong> &gt; <strong>Cookies</strong> &gt; <strong>https://chat.zalo.me</strong></p>
-                    <p>3. Copy giá trị của dòng <strong>zpw_sek</strong> (hoặc copy toàn bộ chuỗi cookie từ Header Network) rồi dán vào ô bên dưới.</p>
-                    <p className="text-[10px] text-slate-400 italic">* Hỗ trợ cả định dạng: chuỗi raw cookie, mảng JSON từ tiện ích J2Team / EditThisCookie, hoặc full Credentials JSON.*</p>
+                    <p>3. Chọn dòng <strong>zpw_sek</strong> rồi bấm <strong>Ctrl + C (hoặc chuột phải copy)</strong> rồi dán thẳng vào đây.</p>
+                    <p className="text-[10px] text-emerald-600 font-medium">✨ Hệ thống tự động nhận diện: Dòng bảng copy từ DevTools (chứa tab/khoảng trắng), chuỗi header `zpw_sek=...`, mảng JSON, hoặc chỉ dán duy nhất mã token!</p>
                   </div>
                 ) : (
                   <p className="text-[11px] text-slate-600 leading-relaxed">
-                    Dành cho VPS hoặc máy chủ remote không quét được camera: dán chuỗi Cookie hoặc JSON Session đã lưu từ trình duyệt để đăng nhập trực tiếp.
+                    Dành cho VPS hoặc máy chủ remote: Copy dòng cookie <strong>zpw_sek</strong> từ trình duyệt dán vào đây, hệ thống sẽ tự động phân tích và kết nối bot ngay.
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Dữ liệu Cookie hoặc JSON Credentials <span className="text-red-500">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                  <span>Dữ liệu Cookie / Token Zalo <span className="text-red-500">*</span></span>
+                  <span className="text-[10px] text-indigo-600 font-normal">Tự nhận diện mọi định dạng</span>
                 </label>
                 <textarea
                   rows={4}
                   value={cookieData}
                   onChange={(e) => setCookieData(e.target.value)}
-                  placeholder={`Ví dụ định dạng chuỗi: \nzpw_sek=xxx; _zlang=vi; ...\n\nHoặc định dạng JSON:\n[{"name": "zpw_sek", "value": "xxx"}]`}
+                  placeholder={`Dán bất kỳ định dạng nào tại đây:\n• Dòng copy từ F12 DevTools: zpw_sek\tdSDM.461439...\n• Chuỗi Cookie: zpw_sek=dSDM...; _zlang=vi\n• Mã JSON từ tiện ích J2Team / EditThisCookie\n• Hoặc dán trực tiếp mỗi mã token: dSDM.461439...`}
                   className="w-full text-xs font-mono p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50/50 resize-y"
                   required
                 />

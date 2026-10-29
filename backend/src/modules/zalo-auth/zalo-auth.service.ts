@@ -472,7 +472,10 @@ export class ZaloAuthService {
    * 1. Full JSON Credentials: { imei, cookie, userAgent }
    * 2. Cookie JSON array: [ { name, value, domain }, ... ]
    * 3. Object with cookies property: { cookies: [ ... ] }
-   * 4. Raw cookie string: zpw_sek=xxx; _zlang=vi
+   * 4. DevTools Tab/Space-separated row copy (Name \t Value \t Domain \t Path ...)
+   * 5. Raw cookie string: zpw_sek=xxx; _zlang=vi (with or without "Cookie:" prefix)
+   * 6. Colon-separated: zpw_sek: xxx
+   * 7. Direct token string: dSDM.461439611...
    */
   public parseCredentialsInput(
     cookieData: string,
@@ -483,6 +486,8 @@ export class ZaloAuthService {
     if (raw.startsWith("```")) {
       raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
     }
+    // Strip "Cookie:" or "cookie:" header prefix if copied directly from Network request headers
+    raw = raw.replace(/^cookie:\s*/i, "").trim();
 
     const defaultUA =
       customUserAgent?.trim() ||
@@ -492,11 +497,21 @@ export class ZaloAuthService {
       customImei?.trim() ||
       `${crypto.randomUUID()}-${crypto.createHash("md5").update(defaultUA).digest("hex")}`;
 
+    let cookies: Array<{
+      key?: string;
+      name?: string;
+      value: string;
+      domain?: string;
+      path?: string;
+      hostOnly?: boolean;
+    }> = [];
+
+    // Case 1: JSON format
     if (raw.startsWith("{") || raw.startsWith("[")) {
       try {
         const parsed = JSON.parse(raw);
 
-        // Case 1: Full credentials object
+        // Subcase 1a: Full credentials object { imei, cookie, userAgent }
         if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.cookie) {
           const cookieArr = Array.isArray(parsed.cookie)
             ? parsed.cookie
@@ -509,60 +524,115 @@ export class ZaloAuthService {
           };
         }
 
-        // Case 2: Object with cookies property { cookies: [...] }
+        // Subcase 1b: Object with cookies property { cookies: [...] }
         if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.cookies) {
-          return {
-            imei: defaultImei,
-            userAgent: defaultUA,
-            cookie: parsed.cookies,
-            language: "vi",
-          };
-        }
-
-        // Case 3: Direct array of cookie objects [ { name, value }, ... ]
-        if (Array.isArray(parsed)) {
-          const normalized = parsed.map((c: any) => ({
-            key: c.key || c.name,
-            name: c.name || c.key,
-            value: String(c.value ?? ""),
-            domain: (c.domain || "chat.zalo.me").replace(/^\./, ""),
-            path: c.path || "/",
-          }));
-          return {
-            imei: defaultImei,
-            userAgent: defaultUA,
-            cookie: normalized,
-            language: "vi",
-          };
+          cookies = parsed.cookies;
+        } else if (Array.isArray(parsed)) {
+          // Subcase 1c: Direct array of cookie objects [ { name, value }, ... ]
+          cookies = parsed;
         }
       } catch {
-        // Fall back to raw string parser
+        // Fall back to text parsing
       }
     }
 
-    // Case 4: Raw cookie string: zpw_sek=xxx; _zlang=vi
-    const pairs = raw.split(";").map((p) => p.trim()).filter(Boolean);
-    if (pairs.length === 0) {
-      throw new ZaloAuthError("Định dạng Cookie không hợp lệ.");
+    // Case 2: Text parsing (TSV, DevTools, key-value, raw token, semicolon-delimited)
+    if (cookies.length === 0) {
+      const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+
+      for (const line of lines) {
+        // Check if line contains Tabs or 2+ consecutive spaces (DevTools Application -> Cookies table copy)
+        if (line.includes("\t") || /\s{2,}/.test(line)) {
+          const cols = line.split(/\t+|\s{2,}/).map((c) => c.trim()).filter(Boolean);
+          if (cols.length >= 2) {
+            const name = cols[0];
+            const value = cols[1];
+            const domain = (cols[2] || "chat.zalo.me").replace(/^\./, "");
+            const path = cols[3] || "/";
+            cookies.push({
+              name,
+              key: name,
+              value,
+              domain,
+              path,
+              hostOnly: false,
+            });
+            continue;
+          }
+        }
+
+        // Check if line contains standard semicolon or equals (e.g. zpw_sek=xxx; _zlang=vi)
+        if (line.includes("=") || line.includes(";")) {
+          const parts = line.split(";").map((p) => p.trim()).filter(Boolean);
+          for (const p of parts) {
+            const eqIdx = p.indexOf("=");
+            if (eqIdx > -1) {
+              const name = p.slice(0, eqIdx).trim();
+              const value = p.slice(eqIdx + 1).trim();
+              if (name) {
+                cookies.push({
+                  name,
+                  key: name,
+                  value,
+                  domain: "chat.zalo.me",
+                  path: "/",
+                  hostOnly: false,
+                });
+              }
+            }
+          }
+          continue;
+        }
+
+        // Check if line is colon-separated: "zpw_sek: abc..."
+        if (line.includes(":") && !line.includes("http")) {
+          const colIdx = line.indexOf(":");
+          const name = line.slice(0, colIdx).trim();
+          const value = line.slice(colIdx + 1).trim();
+          if (name && value) {
+            cookies.push({
+              name,
+              key: name,
+              value,
+              domain: "chat.zalo.me",
+              path: "/",
+              hostOnly: false,
+            });
+            continue;
+          }
+        }
+
+        // If single line and looks like a raw zpw_sek token (no whitespace, length >= 20)
+        if (lines.length === 1 && !line.includes(" ") && line.length >= 20) {
+          cookies.push({
+            name: "zpw_sek",
+            key: "zpw_sek",
+            value: line.trim(),
+            domain: "chat.zalo.me",
+            path: "/",
+            hostOnly: false,
+          });
+        }
+      }
     }
 
-    const cookies = pairs.map((p) => {
-      const idx = p.indexOf("=");
-      const name = idx > -1 ? p.slice(0, idx).trim() : p.trim();
-      const value = idx > -1 ? p.slice(idx + 1).trim() : "";
-      return {
-        key: name,
-        name: name,
-        value,
-        domain: "chat.zalo.me",
-        path: "/",
-      };
-    });
+    if (cookies.length === 0) {
+      throw new ZaloAuthError("Không thể nhận diện định dạng Cookie. Vui lòng kiểm tra lại nội dung dán.");
+    }
+
+    const normalized = cookies.map((c: any) => ({
+      key: c.key || c.name,
+      name: c.name || c.key,
+      value: String(c.value ?? ""),
+      domain: (c.domain || "chat.zalo.me").replace(/^\./, ""),
+      path: c.path || "/",
+      hostOnly: false,
+    }));
 
     return {
       imei: defaultImei,
       userAgent: defaultUA,
-      cookie: cookies,
+      cookie: normalized,
       language: "vi",
     };
   }

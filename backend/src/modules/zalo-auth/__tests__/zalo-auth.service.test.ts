@@ -287,6 +287,45 @@ describe("ZaloAuthService (QR Lifecycle, Restoration & Reconnection)", () => {
       );
     });
 
+    it("should parse DevTools tab-separated row copy correctly", () => {
+      const devtoolsTsv =
+        "zpw_sek\tdSDM.461439611.a0.kAbkVmgFgzY9-Ywrq_YlhedQoiNGmesQsOxdcRI-nzI4Yf_SWA33_8QsoiMZnPACZuLxC4--wI0B-Igb4PAlhW\t.chat.zalo.me\t/\t2027-01-27T09:01:58.284Z\t111\t✓\t✓\tLax\t\t\tMediu";
+      const creds = authService.parseCredentialsInput(devtoolsTsv);
+      expect(creds.cookie.length).toBeGreaterThan(0);
+      expect(creds.cookie[0]).toEqual(
+        expect.objectContaining({
+          key: "zpw_sek",
+          name: "zpw_sek",
+          value:
+            "dSDM.461439611.a0.kAbkVmgFgzY9-Ywrq_YlhedQoiNGmesQsOxdcRI-nzI4Yf_SWA33_8QsoiMZnPACZuLxC4--wI0B-Igb4PAlhW",
+          domain: "chat.zalo.me",
+        })
+      );
+    });
+
+    it("should parse direct raw token string correctly", () => {
+      const rawToken =
+        "dSDM.461439611.a0.kAbkVmgFgzY9-Ywrq_YlhedQoiNGmesQsOxdcRI-nzI4Yf_SWA33_8QsoiMZnPACZuLxC4--wI0B-Igb4PAlhW";
+      const creds = authService.parseCredentialsInput(rawToken);
+      expect(creds.cookie[0]).toEqual(
+        expect.objectContaining({
+          key: "zpw_sek",
+          value: rawToken,
+        })
+      );
+    });
+
+    it("should parse header with Cookie prefix correctly", () => {
+      const headerStr = "Cookie: zpw_sek=token123; _zlang=vi";
+      const creds = authService.parseCredentialsInput(headerStr);
+      expect(creds.cookie).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ key: "zpw_sek", value: "token123" }),
+          expect.objectContaining({ key: "_zlang", value: "vi" }),
+        ])
+      );
+    });
+
     it("should parse full credentials JSON correctly", () => {
       const fullJson = JSON.stringify({
         imei: "custom_imei_123",
