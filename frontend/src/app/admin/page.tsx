@@ -443,27 +443,27 @@ export default function AdminPage() {
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-6 sm:space-y-8">
         {/* Admin Header Banner */}
-        <div className="bg-gradient-to-r from-slate-800 via-indigo-950 to-slate-800 border border-slate-700/80 p-6 rounded-3xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/30">
-              <Shield className="w-6 h-6" />
+        <div className="bg-gradient-to-r from-slate-800 via-indigo-950 to-slate-800 border border-slate-700/80 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3 sm:space-x-3.5">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/30 flex-shrink-0">
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h2 className="text-xl font-black text-white">Bảng Quản Trị Hệ Thống SaaS</h2>
+                <h2 className="text-lg sm:text-xl font-black text-white">Bảng Quản Trị Hệ Thống SaaS</h2>
                 <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">
                   SUPER ADMIN
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 leading-relaxed">
                 Quản lý toàn bộ người dùng, kích hoạt gói thuê bao, giám sát giao dịch và bot Zalo
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2.5 w-full sm:w-auto">
+          <div className="flex items-center space-x-2 w-full sm:w-auto">
             <button
               onClick={() => {
                 loadDashboardStats();
@@ -471,14 +471,14 @@ export default function AdminPage() {
                 if (activeTab === "transactions") loadTransactions();
                 if (activeTab === "bots") loadBots();
               }}
-              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 font-medium transition-colors"
+              className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 font-medium transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Làm mới</span>
             </button>
             <Link
               href="/"
-              className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition-all"
+              className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition-all"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Về Bot Dashboard</span>
@@ -488,8 +488,8 @@ export default function AdminPage() {
 
         {/* Real-time Metric Cards */}
         {stats && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-slate-800/80 border border-slate-700/80 p-5 rounded-3xl shadow-sm space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-slate-800/80 border border-slate-700/80 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm space-y-2">
               <div className="flex items-center justify-between text-slate-400 text-xs">
                 <span>Tổng người dùng</span>
                 <Users className="w-4 h-4 text-blue-400" />
@@ -504,7 +504,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="bg-slate-800/80 border border-slate-700/80 p-5 rounded-3xl shadow-sm space-y-2">
+            <div className="bg-slate-800/80 border border-slate-700/80 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm space-y-2">
               <div className="flex items-center justify-between text-slate-400 text-xs">
                 <span>Tổng doanh thu (SePay)</span>
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
@@ -520,7 +520,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="bg-slate-800/80 border border-slate-700/80 p-5 rounded-3xl shadow-sm space-y-2">
+            <div className="bg-slate-800/80 border border-slate-700/80 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm space-y-2">
               <div className="flex items-center justify-between text-slate-400 text-xs">
                 <span>Bot Zalo Toàn Hệ Thống</span>
                 <Bot className="w-4 h-4 text-indigo-400" />
@@ -538,7 +538,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="bg-slate-800/80 border border-slate-700/80 p-5 rounded-3xl shadow-sm space-y-2">
+            <div className="bg-slate-800/80 border border-slate-700/80 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm space-y-2">
               <div className="flex items-center justify-between text-slate-400 text-xs">
                 <span>Phân bố gói thuê bao</span>
                 <Sparkles className="w-4 h-4 text-amber-400" />
@@ -562,41 +562,41 @@ export default function AdminPage() {
         )}
 
         {/* Tab Navigation */}
-        <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
+        <div className="flex items-center space-x-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab("users")}
-            className={`flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
+            className={`flex items-center space-x-2 px-4 sm:px-5 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
               activeTab === "users"
                 ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
                 : "bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white"
             }`}
           >
-            <Users className="w-4 h-4" />
-            <span>Quản lý Người Dùng ({stats?.totalUsers || 0})</span>
+            <Users className="w-4 h-4 flex-shrink-0" />
+            <span><span className="hidden sm:inline">Quản lý </span>Người Dùng ({stats?.totalUsers || 0})</span>
           </button>
 
           <button
             onClick={() => setActiveTab("transactions")}
-            className={`flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
+            className={`flex items-center space-x-2 px-4 sm:px-5 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
               activeTab === "transactions"
                 ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
                 : "bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white"
             }`}
           >
-            <CreditCard className="w-4 h-4" />
-            <span>Giao Dịch SePay ({stats?.totalTransactions || 0})</span>
+            <CreditCard className="w-4 h-4 flex-shrink-0" />
+            <span><span className="hidden sm:inline">Giao Dịch </span>SePay ({stats?.totalTransactions || 0})</span>
           </button>
 
           <button
             onClick={() => setActiveTab("bots")}
-            className={`flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
+            className={`flex items-center space-x-2 px-4 sm:px-5 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
               activeTab === "bots"
                 ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
                 : "bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white"
             }`}
           >
-            <Bot className="w-4 h-4" />
-            <span>Zalo Bots Toàn Hệ Thống ({stats?.totalZaloAccounts || 0})</span>
+            <Bot className="w-4 h-4 flex-shrink-0" />
+            <span><span className="hidden sm:inline">Zalo Bots </span>Toàn Hệ Thống ({stats?.totalZaloAccounts || 0})</span>
           </button>
         </div>
 
@@ -638,9 +638,9 @@ export default function AdminPage() {
             </div>
 
             {/* Users Table */}
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-3xl overflow-hidden shadow-xl">
+            <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-xs min-w-[720px]">
                   <thead className="bg-slate-900/80 text-slate-400 font-semibold uppercase border-b border-slate-700">
                     <tr>
                       <th className="px-5 py-3.5">Người dùng</th>
@@ -861,9 +861,9 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-3xl overflow-hidden shadow-xl">
+            <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-xs min-w-[720px]">
                   <thead className="bg-slate-900/80 text-slate-400 font-semibold uppercase border-b border-slate-700">
                     <tr>
                       <th className="px-5 py-3.5">Mã Giao Dịch</th>
@@ -998,9 +998,9 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-3xl overflow-hidden shadow-xl">
+            <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-xs min-w-[720px]">
                   <thead className="bg-slate-900/80 text-slate-400 font-semibold uppercase border-b border-slate-700">
                     <tr>
                       <th className="px-5 py-3.5">Tài khoản Zalo</th>
@@ -1124,12 +1124,12 @@ export default function AdminPage() {
 
       {/* ================= MODAL: EDIT SUBSCRIPTION ================= */}
       {subModalUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-slate-800 border border-slate-700 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl sm:rounded-3xl max-w-lg w-full max-h-[92vh] overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-700 pb-3">
               <div>
-                <h3 className="text-base font-bold text-white">Gia Hạn / Điều Chỉnh Gói Thuê Bao</h3>
-                <p className="text-xs text-slate-400">{subModalUser.email}</p>
+                <h3 className="text-sm sm:text-base font-bold text-white">Gia Hạn / Điều Chỉnh Gói Thuê Bao</h3>
+                <p className="text-xs text-slate-400 truncate max-w-[240px] sm:max-w-none">{subModalUser.email}</p>
               </div>
               <button
                 onClick={() => setSubModalUser(null)}
@@ -1200,11 +1200,11 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-700">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:space-x-2 pt-2 border-t border-slate-700">
               <button
                 type="button"
                 onClick={() => setSubModalUser(null)}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-xl"
+                className="w-full sm:w-auto px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-xl text-center"
               >
                 Hủy
               </button>
@@ -1212,7 +1212,7 @@ export default function AdminPage() {
                 type="button"
                 disabled={isSavingSub}
                 onClick={handleSaveSubscription}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-500/20 disabled:opacity-50 flex items-center space-x-1.5"
+                className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-500/20 disabled:opacity-50 flex items-center justify-center space-x-1.5"
               >
                 {isSavingSub ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                 <span>Lưu thay đổi</span>
@@ -1224,16 +1224,16 @@ export default function AdminPage() {
 
       {/* ================= MODAL: BAN USER ================= */}
       {banModalUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-slate-800 border border-slate-700 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl sm:rounded-3xl max-w-md w-full max-h-[92vh] overflow-y-auto p-4 sm:p-6 space-y-4 shadow-2xl">
             <div className="flex items-center space-x-3 text-amber-400">
-              <AlertTriangle className="w-6 h-6" />
-              <h3 className="text-base font-bold text-white">
+              <AlertTriangle className="w-6 h-6 flex-shrink-0" />
+              <h3 className="text-sm sm:text-base font-bold text-white">
                 {banModalUser.isBanned ? "Mở Khóa Tài Khoản" : "Khóa Tài Khoản Người Dùng"}
               </h3>
             </div>
 
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-slate-300 leading-relaxed">
               {banModalUser.isBanned
                 ? `Bạn có chắc muốn mở khóa cho tài khoản [${banModalUser.email}]? Người dùng sẽ đăng nhập và sử dụng bot trở lại bình thường.`
                 : `Khi bị khóa, tài khoản [${banModalUser.email}] sẽ bị đăng xuất ngay lập tức và toàn bộ bot Zalo của họ sẽ dừng hoạt động.`}
@@ -1254,11 +1254,11 @@ export default function AdminPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-end space-x-2 pt-3">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:space-x-2 pt-3 border-t border-slate-700">
               <button
                 type="button"
                 onClick={() => setBanModalUser(null)}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-xl"
+                className="w-full sm:w-auto px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-xl text-center"
               >
                 Hủy
               </button>
@@ -1266,7 +1266,7 @@ export default function AdminPage() {
                 type="button"
                 disabled={isSavingBan}
                 onClick={handleSaveBan}
-                className={`px-5 py-2 text-white text-xs font-semibold rounded-xl shadow-md disabled:opacity-50 flex items-center space-x-1.5 ${
+                className={`w-full sm:w-auto px-5 py-2.5 text-white text-xs font-semibold rounded-xl shadow-md disabled:opacity-50 flex items-center justify-center space-x-1.5 ${
                   banModalUser.isBanned
                     ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
                     : "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20"
@@ -1288,11 +1288,11 @@ export default function AdminPage() {
 
       {/* ================= MODAL: DELETE USER ================= */}
       {deleteModalUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-slate-800 border border-rose-500/30 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in">
+          <div className="bg-slate-800 border border-rose-500/30 rounded-2xl sm:rounded-3xl max-w-md w-full max-h-[92vh] overflow-y-auto p-4 sm:p-6 space-y-4 shadow-2xl">
             <div className="flex items-center space-x-3 text-rose-500">
-              <Trash2 className="w-6 h-6" />
-              <h3 className="text-base font-bold text-white">Xóa Vĩnh Viễn Người Dùng</h3>
+              <Trash2 className="w-6 h-6 flex-shrink-0" />
+              <h3 className="text-sm sm:text-base font-bold text-white">Xóa Vĩnh Viễn Người Dùng</h3>
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
@@ -1306,11 +1306,11 @@ export default function AdminPage() {
             </ul>
             <p className="text-[11px] text-rose-400 font-bold">Hành động này KHÔNG THỂ hoàn tác!</p>
 
-            <div className="flex items-center justify-end space-x-2 pt-3">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:space-x-2 pt-3 border-t border-slate-700">
               <button
                 type="button"
                 onClick={() => setDeleteModalUser(null)}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-xl"
+                className="w-full sm:w-auto px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-xl text-center"
               >
                 Hủy
               </button>
@@ -1318,7 +1318,7 @@ export default function AdminPage() {
                 type="button"
                 disabled={isDeletingUser}
                 onClick={handleDeleteUser}
-                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-rose-500/20 disabled:opacity-50 flex items-center space-x-1.5"
+                className="w-full sm:w-auto px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-rose-500/20 disabled:opacity-50 flex items-center justify-center space-x-1.5"
               >
                 {isDeletingUser ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                 <span>Xóa vĩnh viễn</span>

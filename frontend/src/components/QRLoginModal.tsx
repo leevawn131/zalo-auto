@@ -177,19 +177,19 @@ export function QRLoginModal({ isOpen, onClose, onSuccess }: QRLoginModalProps) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 flex flex-col max-h-[92vh] sm:max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2.5 bg-blue-600 text-white rounded-xl shadow-md shadow-blue-500/20">
-              {activeTab === "qr" ? <QrCode className="w-5 h-5" /> : <Cookie className="w-5 h-5" />}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-slate-50/70">
+          <div className="flex items-center space-x-2 sm:space-x-2.5">
+            <div className="p-2 sm:p-2.5 bg-blue-600 text-white rounded-xl shadow-md shadow-blue-500/20 flex-shrink-0">
+              {activeTab === "qr" ? <QrCode className="w-4 h-4 sm:w-5 sm:h-5" /> : <Cookie className="w-4 h-4 sm:w-5 sm:h-5" />}
             </div>
             <div>
-              <h3 className="font-bold text-slate-800 text-base leading-snug">
+              <h3 className="font-bold text-slate-800 text-sm sm:text-base leading-snug">
                 Thêm tài khoản Zalo Bot
               </h3>
-              <p className="text-xs text-slate-500">Chọn phương thức đăng nhập thuận tiện nhất cho bạn</p>
+              <p className="text-[11px] sm:text-xs text-slate-500">Chọn phương thức đăng nhập thuận tiện nhất cho bạn</p>
             </div>
           </div>
           <button
@@ -201,35 +201,37 @@ export function QRLoginModal({ isOpen, onClose, onSuccess }: QRLoginModalProps) 
         </div>
 
         {/* Tab Selection */}
-        <div className="grid grid-cols-2 p-1.5 bg-slate-100/90 mx-6 mt-4 rounded-xl border border-slate-200/80">
+        <div className="grid grid-cols-2 p-1.5 bg-slate-100/90 mx-3 sm:mx-6 mt-3 sm:mt-4 rounded-xl border border-slate-200/80">
           <button
             type="button"
             onClick={() => setActiveTab("qr")}
-            className={`flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center justify-center space-x-1.5 sm:space-x-2 py-2 px-2 sm:px-3 rounded-lg text-xs font-semibold transition-all ${
               activeTab === "qr"
                 ? "bg-white text-blue-600 shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <Smartphone className="w-4 h-4" />
-            <span>Quét mã QR (Khuyên dùng)</span>
+            <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+            <span className="hidden sm:inline">Quét mã QR (Khuyên dùng)</span>
+            <span className="sm:hidden">Quét mã QR</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("cookie")}
-            className={`flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center justify-center space-x-1.5 sm:space-x-2 py-2 px-2 sm:px-3 rounded-lg text-xs font-semibold transition-all ${
               activeTab === "cookie"
                 ? "bg-white text-indigo-600 shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <Cookie className="w-4 h-4" />
-            <span>Đăng nhập Cookie / Session</span>
+            <Cookie className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+            <span className="hidden sm:inline">Đăng nhập Cookie / Session</span>
+            <span className="sm:hidden">Nhập Cookie</span>
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
           {/* TAB 1: QR CODE */}
           {activeTab === "qr" && (
             <div className="flex flex-col items-center text-center">
@@ -243,11 +245,11 @@ export function QRLoginModal({ isOpen, onClose, onSuccess }: QRLoginModalProps) 
 
               {status === "QR_PENDING" && qrImage && (
                 <div className="flex flex-col items-center w-full animate-in zoom-in-95 duration-200">
-                  <div className="p-3 bg-white rounded-2xl shadow-md border-2 border-dashed border-blue-200 relative group">
+                  <div className="p-2.5 sm:p-3 bg-white rounded-2xl shadow-md border-2 border-dashed border-blue-200 relative group">
                     <img
                       src={qrImage}
                       alt="Zalo QR Code"
-                      className="w-60 h-60 object-contain rounded-xl"
+                      className="w-52 h-52 sm:w-60 sm:h-60 object-contain rounded-xl"
                     />
                   </div>
 

@@ -269,31 +269,31 @@ export function BotConfigModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-2xl w-full max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl">
-              <Bot className="w-5 h-5" />
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center space-x-2.5 sm:space-x-3">
+            <div className="p-2 sm:p-2.5 bg-blue-100 text-blue-600 rounded-xl flex-shrink-0">
+              <Bot className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-800 text-base">Cấu hình Auto-Reply</h3>
-              <p className="text-xs text-slate-500">Tài khoản: {accountName}</p>
+              <h3 className="font-semibold text-slate-800 text-sm sm:text-base">Cấu hình Auto-Reply</h3>
+              <p className="text-[11px] sm:text-xs text-slate-500">Tài khoản: {accountName}</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             {config && (
               <button
                 onClick={handleToggleBot}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm ${
+                className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-all shadow-sm ${
                   config.isEnabled
                     ? "bg-emerald-500 text-white hover:bg-emerald-600"
                     : "bg-slate-200 text-slate-600 hover:bg-slate-300"
                 }`}
               >
-                <span>{config.isEnabled ? "Bot: Đang Bật" : "Bot: Đang Tắt"}</span>
+                <span>{config.isEnabled ? "Bot: Bật" : "Bot: Tắt"}</span>
               </button>
             )}
 
@@ -307,31 +307,33 @@ export function BotConfigModal({
         </div>
 
         {/* Tab Selector */}
-        <div className="flex border-b border-slate-100 px-6 bg-white">
+        <div className="flex border-b border-slate-100 px-4 sm:px-6 bg-white overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab("rules")}
-            className={`py-3 text-xs font-semibold border-b-2 mr-6 transition-all ${
+            className={`py-3 text-xs font-semibold border-b-2 mr-4 sm:mr-6 whitespace-nowrap transition-all ${
               activeTab === "rules"
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-slate-400 hover:text-slate-600"
             }`}
           >
-            Từ khóa phản hồi ({config?.rules.length || 0})
+            <span className="hidden sm:inline">Từ khóa phản hồi</span>
+            <span className="sm:hidden">Từ khóa</span> ({config?.rules.length || 0})
           </button>
           <button
             onClick={() => setActiveTab("settings")}
-            className={`py-3 text-xs font-semibold border-b-2 transition-all ${
+            className={`py-3 text-xs font-semibold border-b-2 whitespace-nowrap transition-all ${
               activeTab === "settings"
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-slate-400 hover:text-slate-600"
             }`}
           >
-            Cài đặt nâng cao (Độ trễ &amp; Giới hạn)
+            <span className="hidden sm:inline">Cài đặt nâng cao (Độ trễ &amp; Giới hạn)</span>
+            <span className="sm:hidden">Cài đặt bot</span>
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
           {isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center">
               <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mb-2" />
@@ -672,7 +674,7 @@ export function BotConfigModal({
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-5 py-2.5 rounded-xl font-semibold transition-colors disabled:opacity-50"
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-xs px-5 py-2.5 rounded-xl font-semibold transition-colors disabled:opacity-50 text-center justify-center"
                   >
                     {isSaving ? "Đang lưu..." : "Lưu cài đặt"}
                   </button>

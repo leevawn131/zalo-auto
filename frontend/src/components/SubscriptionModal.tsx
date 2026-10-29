@@ -189,17 +189,17 @@ export function SubscriptionModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-3xl w-full max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-xl shadow-md shadow-blue-500/20">
-              <Sparkles className="w-5 h-5" />
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center space-x-2.5 sm:space-x-3">
+            <div className="p-2 sm:p-2.5 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-xl shadow-md shadow-blue-500/20 flex-shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-800 text-base">Gói Thuê Bao & Thanh Toán SePay</h3>
-              <p className="text-xs text-slate-500">Kích hoạt và gia hạn bot tự động</p>
+              <h3 className="font-semibold text-slate-800 text-sm sm:text-base">Gói Thuê Bao &amp; Thanh Toán SePay</h3>
+              <p className="text-[11px] sm:text-xs text-slate-500">Kích hoạt và gia hạn bot tự động</p>
             </div>
           </div>
 
@@ -212,14 +212,14 @@ export function SubscriptionModal({
         </div>
 
         {/* Body */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 sm:space-y-6">
           {/* Current subscription banner */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 flex items-center justify-between">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 flex items-center justify-between">
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-xs font-semibold text-blue-900">Trạng thái gói:</span>
+                <span className="text-xs font-semibold text-blue-900">Trạng thái:</span>
                 <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                  className={`text-[11px] sm:text-xs px-2 py-0.5 rounded-full font-bold ${
                     currentSub?.isActive
                       ? "bg-emerald-100 text-emerald-700"
                       : "bg-amber-100 text-amber-700"
@@ -228,9 +228,9 @@ export function SubscriptionModal({
                   {currentSub?.isActive ? "ĐANG HOẠT ĐỘNG" : "CHƯA KÍCH HOẠT"}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-[11px] sm:text-xs text-slate-500 mt-1">
                 {currentSub?.isActive
-                  ? `Còn lại ${currentSub.daysRemaining} ngày sử dụng (Hết hạn: ${new Date(
+                  ? `Còn lại ${currentSub.daysRemaining} ngày (Hết hạn: ${new Date(
                       currentSub.subscription.expiresAt
                     ).toLocaleDateString("vi-VN")})`
                   : "Vui lòng chọn gói bên dưới để kích hoạt tài khoản bot của bạn"}
@@ -300,18 +300,18 @@ export function SubscriptionModal({
           ) : invoice ? (
             /* VietQR Payment Screen */
             <div className="space-y-4 animate-in zoom-in-95 duration-200">
-              <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-center">
+              <div className="p-3 sm:p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-center">
                 <p className="text-xs font-semibold text-emerald-800">
                   Hóa đơn đã được tạo! Quét mã VietQR dưới đây để thanh toán tự động qua SePay.
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                <div className="bg-white p-3 rounded-2xl shadow-md border border-slate-200">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 p-3.5 sm:p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <div className="bg-white p-3 rounded-2xl shadow-md border border-slate-200 flex-shrink-0">
                   <img
                     src={invoice.qrCodeUrl}
                     alt="VietQR SePay"
-                    className="w-56 h-56 object-contain"
+                    className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
                   />
                 </div>
 
@@ -355,15 +355,15 @@ export function SubscriptionModal({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-center sm:text-left">
                 <button
                   onClick={() => setInvoice(null)}
-                  className="text-xs text-slate-500 hover:text-slate-700 underline"
+                  className="text-xs text-slate-500 hover:text-slate-700 underline order-2 sm:order-1"
                 >
                   &larr; Chọn gói khác
                 </button>
-                <div className="flex items-center space-x-1.5 text-xs text-slate-400">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <div className="flex items-center space-x-1.5 text-xs text-slate-400 order-1 sm:order-2">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin flex-shrink-0" />
                   <span>Hệ thống tự động kích hoạt sau 5-10 giây khi nhận tiền</span>
                 </div>
               </div>
@@ -371,21 +371,21 @@ export function SubscriptionModal({
           ) : (
             /* Plan Cards */
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                 <h4 className="text-xs font-bold text-slate-800">Chọn gói thuê bao để kích hoạt</h4>
-                <span className="text-[11px] text-rose-600 font-semibold bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-100">
-                  Thuê bao bắt buộc (Không có dùng thử miễn phí)
+                <span className="text-[10px] sm:text-[11px] text-rose-600 font-semibold bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-100 w-fit">
+                  Thuê bao bắt buộc (Không dùng thử miễn phí)
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {plans
                   .filter((p) => p.price > 0)
                   .map((plan) => (
                     <div
                       key={plan.code}
                       onClick={() => setSelectedPlan(plan.code)}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                      className={`p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
                         selectedPlan === plan.code
                           ? "border-blue-600 bg-blue-50/40 shadow-md shadow-blue-500/10"
                           : "border-slate-200 hover:border-slate-300 bg-white"
@@ -401,7 +401,7 @@ export function SubscriptionModal({
                           )}
                         </div>
 
-                        <div className="my-2.5">
+                        <div className="my-2">
                           <span className="text-xl font-black text-blue-600">
                             {plan.price.toLocaleString("vi-VN")}
                           </span>
@@ -421,11 +421,11 @@ export function SubscriptionModal({
                   ))}
               </div>
 
-              <div className="pt-4 flex justify-end">
+              <div className="pt-2 sm:pt-4 flex justify-end">
                 <button
                   onClick={() => handleCreateInvoice(selectedPlan)}
                   disabled={isLoading}
-                  className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-xs px-6 py-3 rounded-2xl font-semibold transition-all shadow-md shadow-blue-500/20 disabled:opacity-50"
+                  className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-xs px-6 py-3 rounded-2xl font-semibold transition-all shadow-md shadow-blue-500/20 disabled:opacity-50"
                 >
                   {isLoading ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />

@@ -61,9 +61,9 @@ export function AccountList({
 }: AccountListProps) {
   if (accounts.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
-        <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Bot className="w-8 h-8" />
+      <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-6 sm:p-12 text-center">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Bot className="w-7 h-7 sm:w-8 sm:h-8" />
         </div>
         <h3 className="text-base font-semibold text-slate-800">Chưa có tài khoản Zalo nào</h3>
         <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-6">
@@ -71,7 +71,7 @@ export function AccountList({
         </p>
         <button
           onClick={onReauth}
-          className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-xs px-6 py-3 rounded-2xl font-semibold shadow-md shadow-blue-500/20 transition-all active:scale-95 cursor-pointer"
+          className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-xs px-6 py-3 rounded-2xl font-semibold shadow-md shadow-blue-500/20 transition-all active:scale-95 cursor-pointer"
         >
           <Bot className="w-4 h-4" />
           <span>Bấm vào đây để quét mã kết nối Zalo ngay</span>
@@ -133,29 +133,31 @@ export function AccountList({
       {accounts.map((account) => (
         <div
           key={account.id}
-          className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+          className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
         >
           <div>
-            <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center space-x-3 min-w-0 flex-1">
                 {account.avatar ? (
                   <img
                     src={account.avatar}
                     alt={account.displayName}
-                    className="w-12 h-12 rounded-xl object-cover border border-slate-100 shadow-sm"
+                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover border border-slate-100 shadow-sm flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-base sm:text-lg flex-shrink-0">
                     {account.displayName[0] || "Z"}
                   </div>
                 )}
-                <div>
-                  <h4 className="font-semibold text-slate-800 text-sm">{account.displayName}</h4>
-                  <p className="text-xs text-slate-400 font-mono mt-0.5">UID: {account.zaloId}</p>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-semibold text-slate-800 text-sm truncate">{account.displayName}</h4>
+                  <p className="text-xs text-slate-400 font-mono mt-0.5 truncate">UID: {account.zaloId}</p>
                 </div>
               </div>
 
-              {renderStatusBadge(account)}
+              <div className="flex-shrink-0">
+                {renderStatusBadge(account)}
+              </div>
             </div>
 
             {account.errorReason && (
@@ -166,7 +168,7 @@ export function AccountList({
             )}
 
             {/* Quick action badges */}
-            <div className="mt-4 flex items-center space-x-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               <button
                 onClick={() => {
                   if (!subscriptionActive) {
@@ -177,7 +179,7 @@ export function AccountList({
                 }}
                 className="flex items-center space-x-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-xl border border-slate-200 transition-colors"
               >
-                <Bot className="w-3.5 h-3.5 text-blue-600" />
+                <Bot className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
                 <span>Từ khóa & Cài đặt</span>
               </button>
 
@@ -191,7 +193,7 @@ export function AccountList({
                 }}
                 className="flex items-center space-x-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-xl border border-slate-200 transition-colors"
               >
-                <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                <Clock className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0" />
                 <span>Lịch sử tin nhắn</span>
               </button>
             </div>

@@ -1,5 +1,5 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
 const inter = Inter({ subsets: ["latin", "vietnamese"] });
@@ -7,6 +7,12 @@ const inter = Inter({ subsets: ["latin", "vietnamese"] });
 export const metadata: Metadata = {
   title: "Zalo Auto-Reply SaaS - Quản trị bot Zalo tự động",
   description: "Hệ thống quản lý bot Zalo đa tài khoản, auto-reply từ khóa và sao lưu tin nhắn",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({

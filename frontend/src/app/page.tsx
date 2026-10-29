@@ -226,10 +226,10 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar user={user} onLogout={handleLogout} />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {!token ? (
           /* Authentication Screen */
-          <div className="max-w-md mx-auto mt-12 bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
+          <div className="max-w-md mx-auto mt-6 sm:mt-12 bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-xl border border-slate-100">
             <div className="text-center mb-8">
               <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-500/30">
                 <Bot className="w-8 h-8" />
@@ -347,16 +347,16 @@ export default function HomePage() {
           <div className="space-y-6">
             {/* Warning Banner if Subscription is NOT active */}
             {!subscription?.isActive ? (
-              <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-orange-500/10 border-2 border-amber-400 p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-pulse">
+              <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-orange-500/10 border-2 border-amber-400 p-4 sm:p-5 rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-pulse">
                 <div className="flex items-center space-x-3">
                   <div className="p-2.5 bg-amber-500 text-white rounded-2xl flex-shrink-0 shadow-md shadow-amber-500/30">
-                    <AlertCircle className="w-6 h-6" />
+                    <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-800 text-sm sm:text-base">
                       Tài khoản chưa kích hoạt hoặc đã hết hạn gói thuê bao!
                     </h3>
-                    <p className="text-xs text-slate-600 mt-0.5">
+                    <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
                       Tất cả tính năng kết nối bot, trả lời tự động và tùy chỉnh từ khóa đang tạm ngưng. Vui lòng thanh toán để mở khóa.
                     </p>
                   </div>
@@ -364,13 +364,13 @@ export default function HomePage() {
 
                 <button
                   onClick={() => setIsSubModalOpen(true)}
-                  className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95 flex-shrink-0"
+                  className="w-full sm:w-auto text-center justify-center bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95 flex-shrink-0"
                 >
                   Nâng cấp / Gia hạn ngay &rarr;
                 </button>
               </div>
             ) : (
-              <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border border-emerald-300 p-4 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+              <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border border-emerald-300 p-4 rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-emerald-600 text-white rounded-2xl flex-shrink-0 shadow-md shadow-emerald-500/20">
                     <CheckCircle2 className="w-5 h-5" />
@@ -388,7 +388,7 @@ export default function HomePage() {
                 {accounts.length === 0 && (
                   <button
                     onClick={() => setIsQrModalOpen(true)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-2xl text-xs font-bold transition-all shadow-md shadow-emerald-500/20 active:scale-95 flex-shrink-0 flex items-center space-x-1.5"
+                    className="w-full sm:w-auto text-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-2xl text-xs font-bold transition-all shadow-md shadow-emerald-500/20 active:scale-95 flex-shrink-0 flex items-center space-x-1.5"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Kết nối Zalo ngay</span>
@@ -398,32 +398,32 @@ export default function HomePage() {
             )}
 
             {/* Action Bar */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm">
               <div>
-                <h2 className="text-xl font-bold text-slate-800">Tài khoản Zalo kết nối</h2>
-                <div className="flex items-center space-x-3 mt-1 text-xs text-slate-500">
+                <h2 className="text-lg sm:text-xl font-bold text-slate-800">Tài khoản Zalo kết nối</h2>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-slate-500">
                   <span>
                     Đang kết nối: <strong className="text-slate-800">{accounts.length}</strong> /{" "}
-                    <strong className="text-blue-600">{subscription?.maxBots || 0}</strong> tài khoản cho phép
+                    <strong className="text-blue-600">{subscription?.maxBots || 0}</strong> tài khoản
                   </span>
-                  <span>•</span>
+                  <span className="hidden sm:inline">•</span>
                   <span className="text-emerald-600 font-semibold">
                     {accounts.filter((a) => a.status === "ONLINE").length} đang trực tuyến
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
                 <button
                   onClick={() => setIsSubModalOpen(true)}
-                  className={`flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-2xl text-xs font-semibold transition-all ${
+                  className={`flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-2xl text-xs font-semibold transition-all ${
                     subscription?.isActive
                       ? "bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-900 border border-emerald-200"
                       : "bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md shadow-amber-500/20 animate-bounce"
                   }`}
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>
+                  <Sparkles className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">
                     {subscription?.isActive
                       ? `Gói thuê bao (${subscription.daysRemaining} ngày - Tối đa ${subscription.maxBots} acc)`
                       : "Thanh toán gói để sử dụng"}
@@ -443,9 +443,9 @@ export default function HomePage() {
                     }
                     setIsQrModalOpen(true);
                   }}
-                  className="flex-1 sm:flex-none flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-2xl text-xs font-semibold transition-all shadow-md shadow-blue-500/20 active:scale-95"
+                  className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-2xl text-xs font-semibold transition-all shadow-md shadow-blue-500/20 active:scale-95"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-4 h-4 flex-shrink-0" />
                   <span>Kết nối Zalo mới</span>
                 </button>
               </div>

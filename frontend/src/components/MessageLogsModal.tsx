@@ -69,31 +69,31 @@ export function MessageLogsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-3xl w-full max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl">
-              <History className="w-5 h-5" />
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+            <div className="p-2 sm:p-2.5 bg-blue-100 text-blue-600 rounded-xl flex-shrink-0">
+              <History className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h3 className="font-semibold text-slate-800 text-base">Lịch sử tin nhắn & Tin đã thu hồi</h3>
-              <p className="text-xs text-slate-500">Tài khoản: {accountName} ({total} tin nhắn)</p>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-slate-800 text-sm sm:text-base truncate">Lịch sử &amp; Tin thu hồi</h3>
+              <p className="text-[11px] sm:text-xs text-slate-500 truncate">{accountName} ({total} tin nhắn)</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
             <button
               onClick={loadMessages}
-              className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               title="Làm mới"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 p-2 rounded-lg hover:bg-slate-100 transition-colors"
+              className="text-slate-400 hover:text-slate-600 p-1.5 sm:p-2 rounded-lg hover:bg-slate-100 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -101,8 +101,8 @@ export function MessageLogsModal({
         </div>
 
         {/* Filter bar */}
-        <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-white">
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3 border-b border-slate-100 bg-white">
+          <div className="flex items-center flex-wrap gap-2">
             <button
               onClick={() => setRevokedOnly(false)}
               className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
@@ -127,7 +127,7 @@ export function MessageLogsModal({
         </div>
 
         {/* Message list */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-3 bg-slate-50/50">
+        <div className="p-3.5 sm:p-6 overflow-y-auto flex-1 space-y-3 bg-slate-50/50">
           {isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center">
               <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mb-2" />
@@ -141,12 +141,12 @@ export function MessageLogsModal({
             messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`p-4 rounded-2xl border shadow-sm transition-all ${
+                className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border shadow-sm transition-all ${
                   msg.isRevoked
                     ? "bg-rose-50/70 border-rose-200"
                     : msg.isSelf
-                    ? "bg-blue-50/60 border-blue-100 ml-8"
-                    : "bg-white border-slate-200 mr-8"
+                    ? "bg-blue-50/60 border-blue-100 ml-3 sm:ml-8"
+                    : "bg-white border-slate-200 mr-3 sm:mr-8"
                 }`}
               >
                 <div className="flex items-center justify-between mb-1.5">
