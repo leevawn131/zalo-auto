@@ -14,6 +14,7 @@
     "start:backend": "npm --workspace=backend run start",
     "start:frontend": "npm --workspace=frontend run start",
     "test:backend": "npm --workspace=backend run test",
-    "test": "npm --workspace=backend run test"
+    "test": "npm --workspace=backend run test",
+    "create-admin": "npm --workspace=backend run create-admin --"
   }
 }

@@ -24,7 +24,7 @@ import {
 
 export default function HomePage() {
   const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<{ email: string; name?: string } | null>(null);
+  const [user, setUser] = useState<{ email: string; name?: string; role?: string } | null>(null);
   const [accounts, setAccounts] = useState<ZaloAccountItem[]>([]);
   const [subscription, setSubscription] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);

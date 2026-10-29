@@ -40,13 +40,15 @@ export function createUserAuthController(): Router {
       });
 
       // Issue JWT
-      const token = jwt.sign({ userId: user.id, email: user.email }, env.JWT_SECRET, {
-        expiresIn: "7d",
-      });
+      const token = jwt.sign(
+        { userId: user.id, email: user.email, role: user.role },
+        env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
 
       res.status(201).json({
         token,
-        user: { id: user.id, email: user.email, name: user.name },
+        user: { id: user.id, email: user.email, name: user.name, role: user.role },
       });
     } catch (err: unknown) {
       if (err instanceof z.ZodError) {
@@ -67,19 +69,29 @@ export function createUserAuthController(): Router {
         return;
       }
 
+      if (user.isBanned) {
+        res.status(403).json({
+          error: "Tài khoản của bạn đã bị tạm khóa bởi Quản trị viên.",
+          reason: user.banReason || "Vi phạm điều khoản dịch vụ",
+        });
+        return;
+      }
+
       const valid = await bcrypt.compare(password, user.passwordHash);
       if (!valid) {
         res.status(401).json({ error: "Invalid email or password" });
         return;
       }
 
-      const token = jwt.sign({ userId: user.id, email: user.email }, env.JWT_SECRET, {
-        expiresIn: "7d",
-      });
+      const token = jwt.sign(
+        { userId: user.id, email: user.email, role: user.role },
+        env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
 
       res.json({
         token,
-        user: { id: user.id, email: user.email, name: user.name },
+        user: { id: user.id, email: user.email, name: user.name, role: user.role },
       });
     } catch (err: unknown) {
       if (err instanceof z.ZodError) {
@@ -94,7 +106,7 @@ export function createUserAuthController(): Router {
     try {
       const user = await prisma.user.findUnique({
         where: { id: req.userId },
-        select: { id: true, email: true, name: true, role: true, createdAt: true },
+        select: { id: true, email: true, name: true, role: true, isBanned: true, banReason: true, createdAt: true },
       });
 
       if (!user) {

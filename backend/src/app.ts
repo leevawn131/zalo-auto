@@ -5,6 +5,7 @@ import { createUserAuthController } from "./modules/auth/user-auth.controller.js
 import { createZaloAuthController } from "./modules/zalo-auth/zalo-auth.controller.js";
 import { createAutoReplyController } from "./modules/auto-reply/auto-reply.controller.js";
 import { createBillingController } from "./modules/billing/billing.controller.js";
+import { createAdminController } from "./modules/admin/admin.controller.js";
 
 export function createApp() {
   const app = express();
@@ -34,6 +35,9 @@ export function createApp() {
 
   // Mount SePay & Billing routes
   app.use("/api/billing", createBillingController());
+
+  // Mount Admin routes (Users, Transactions, Bots, Stats)
+  app.use("/api/admin", createAdminController());
 
   return app;
 }

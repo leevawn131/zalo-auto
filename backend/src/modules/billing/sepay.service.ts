@@ -243,6 +243,9 @@ export class SePayService {
     });
 
     if (!subscription) return 0;
+    if (subscription.maxBots !== null && subscription.maxBots !== undefined) {
+      return subscription.maxBots;
+    }
     const plan = SUBSCRIPTION_PLANS[subscription.planCode as SubscriptionPlanCode];
     return plan?.maxBots || 2;
   }
