@@ -1,6 +1,8 @@
+import type { API } from "zca-js";
 import { prisma } from "../../config/database.js";
 import { logger } from "../../config/logger.js";
 import { TenantAccessDeniedError } from "../zalo-auth/zalo-auth.errors.js";
+import { groupManager } from "./group-manager.service.js";
 
 export interface LogMessageParams {
   accountId: string;
@@ -143,6 +145,7 @@ export class MessageLoggerService {
     options: {
       type?: "ALL" | "USER" | "GROUP";
       search?: string;
+      api?: API;
     } = {}
   ) {
     const account = await prisma.zaloAccount.findUnique({
@@ -169,6 +172,12 @@ export class MessageLoggerService {
       },
     });
 
+    // Resolve group metadata in batch
+    const groupThreadIds = threadGroups
+      .filter((g) => g.threadType === "GROUP")
+      .map((g) => g.threadId);
+    const groupMetaMap = await groupManager.getGroupNames(accountId, groupThreadIds, options.api);
+
     const threads = await Promise.all(
       threadGroups.map(async (group) => {
         const [latestMsg, latestOtherMsg, botCount, revokedCount] = await Promise.all([
@@ -189,20 +198,16 @@ export class MessageLoggerService {
         ]);
 
         let name = "";
+        let avatar: string | null = null;
         if (group.threadType === "USER") {
           name = latestOtherMsg?.senderName || latestMsg?.senderName || `Khách hàng (${group.threadId.slice(-4)})`;
         } else {
-          name = `Nhóm ${group.threadId.slice(-4)}`;
-          if (latestMsg?.rawPayload) {
-            try {
-              const parsed = JSON.parse(latestMsg.rawPayload);
-              if (parsed.groupName || parsed.gName || parsed.title) {
-                name = parsed.groupName || parsed.gName || parsed.title;
-              }
-            } catch {}
-          }
-          if (name === `Nhóm ${group.threadId.slice(-4)}` && latestOtherMsg?.senderName) {
-            name = `Nhóm (${latestOtherMsg.senderName}...)`;
+          const groupMeta = groupMetaMap.get(group.threadId);
+          if (groupMeta?.name) {
+            name = groupMeta.name;
+            avatar = groupMeta.avatar || null;
+          } else {
+            name = `Nhóm ${group.threadId.slice(-4)}`;
           }
         }
 
@@ -213,6 +218,7 @@ export class MessageLoggerService {
           threadId: group.threadId,
           threadType: group.threadType as "USER" | "GROUP",
           name,
+          avatar,
           totalMessages,
           botMessages: botCount,
           userMessages,

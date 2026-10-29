@@ -34,6 +34,7 @@ interface ConversationThread {
   threadId: string;
   threadType: "USER" | "GROUP";
   name: string;
+  avatar?: string | null;
   totalMessages: number;
   botMessages: number;
   userMessages: number;
@@ -73,6 +74,33 @@ export function MessageLogsModal({
   const [threadMessages, setThreadMessages] = useState<MessageEvent[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [revokedOnly, setRevokedOnly] = useState(false);
+
+  // Group sync state
+  const [isSyncingGroups, setIsSyncingGroups] = useState(false);
+  const [syncNotice, setSyncNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const syncGroups = async () => {
+    if (!accountId) return;
+    setIsSyncingGroups(true);
+    setSyncNotice(null);
+    try {
+      const res = await fetchWithAuth(`/api/zalo/accounts/${accountId}/sync-groups`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSyncNotice({ type: "success", text: "Đã đồng bộ tên nhóm từ Zalo thành công!" });
+        await loadThreads();
+      } else {
+        setSyncNotice({ type: "error", text: data.error || "Không thể đồng bộ nhóm từ Zalo" });
+      }
+    } catch {
+      setSyncNotice({ type: "error", text: "Lỗi kết nối khi đồng bộ thông tin nhóm" });
+    } finally {
+      setIsSyncingGroups(false);
+      setTimeout(() => setSyncNotice(null), 4000);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen || !accountId) {
@@ -167,10 +195,17 @@ export function MessageLogsModal({
             <div className="min-w-0">
               <h3 className="font-bold text-slate-800 text-sm sm:text-base truncate">
                 {selectedThread ? (
-                  <span className="flex items-center space-x-2">
+                  <span className="flex items-center space-x-2 min-w-0">
+                    {selectedThread.avatar && (
+                      <img
+                        src={selectedThread.avatar}
+                        alt={selectedThread.name}
+                        className="w-5 h-5 rounded-md object-cover inline-block flex-shrink-0"
+                      />
+                    )}
                     <span className="truncate">{selectedThread.name}</span>
                     <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
                         selectedThread.threadType === "GROUP"
                           ? "bg-purple-100 text-purple-700"
                           : "bg-blue-100 text-blue-700"
@@ -192,6 +227,20 @@ export function MessageLogsModal({
           </div>
 
           <div className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
+            {!selectedThread && (
+              <button
+                onClick={syncGroups}
+                disabled={isSyncingGroups}
+                className="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-colors disabled:opacity-50 border border-purple-200"
+                title="Lấy tên và ảnh đại diện tất cả các nhóm từ Zalo"
+              >
+                <Users className={`w-3.5 h-3.5 ${isSyncingGroups ? "animate-pulse" : ""}`} />
+                <span className="hidden sm:inline">
+                  {isSyncingGroups ? "Đang đồng bộ..." : "Đồng bộ tên nhóm"}
+                </span>
+              </button>
+            )}
+
             <button
               onClick={() => {
                 if (selectedThread) {
@@ -213,6 +262,22 @@ export function MessageLogsModal({
             </button>
           </div>
         </div>
+
+        {/* Sync notification banner */}
+        {syncNotice && (
+          <div
+            className={`px-4 py-2 text-xs font-semibold flex items-center justify-between transition-all ${
+              syncNotice.type === "success"
+                ? "bg-emerald-50 text-emerald-800 border-b border-emerald-100"
+                : "bg-rose-50 text-rose-800 border-b border-rose-100"
+            }`}
+          >
+            <span>{syncNotice.text}</span>
+            <button onClick={() => setSyncNotice(null)} className="text-slate-400 hover:text-slate-600">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* ================= VIEW 1: THREADS LIST ================= */}
         {!selectedThread ? (
@@ -303,19 +368,27 @@ export function MessageLogsModal({
                   >
                     <div className="flex items-center space-x-3 min-w-0 flex-1">
                       {/* Avatar */}
-                      <div
-                        className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-xs ${
-                          thread.threadType === "GROUP"
-                            ? "bg-purple-100 text-purple-700 border border-purple-200"
-                            : "bg-blue-100 text-blue-700 border border-blue-200"
-                        }`}
-                      >
-                        {thread.threadType === "GROUP" ? (
-                          <Users className="w-5 h-5 text-purple-600" />
-                        ) : (
-                          <User className="w-5 h-5 text-blue-600" />
-                        )}
-                      </div>
+                      {thread.avatar ? (
+                        <img
+                          src={thread.avatar}
+                          alt={thread.name}
+                          className="w-11 h-11 rounded-2xl object-cover flex-shrink-0 shadow-xs border border-slate-200"
+                        />
+                      ) : (
+                        <div
+                          className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-xs ${
+                            thread.threadType === "GROUP"
+                              ? "bg-purple-100 text-purple-700 border border-purple-200"
+                              : "bg-blue-100 text-blue-700 border border-blue-200"
+                          }`}
+                        >
+                          {thread.threadType === "GROUP" ? (
+                            <Users className="w-5 h-5 text-purple-600" />
+                          ) : (
+                            <User className="w-5 h-5 text-blue-600" />
+                          )}
+                        </div>
+                      )}
 
                       {/* Info & Snippet */}
                       <div className="min-w-0 flex-1">

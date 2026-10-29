@@ -8,13 +8,15 @@ import { logger } from "../../config/logger.js";
 import { ruleMatcher, RuleMatcher } from "./rule-matcher.js";
 import { rateLimiter, AutoReplyRateLimiter } from "./rate-limiter.js";
 import { messageLogger, MessageLoggerService } from "./message-logger.service.js";
+import { groupManager, GroupManagerService } from "./group-manager.service.js";
 import type { RuleDefinition } from "./auto-reply.types.js";
 
 export class AutoReplyService {
   constructor(
     private matcher: RuleMatcher = ruleMatcher,
     private limiter: AutoReplyRateLimiter = rateLimiter,
-    private msgLogger: MessageLoggerService = messageLogger
+    private msgLogger: MessageLoggerService = messageLogger,
+    private grpManager: GroupManagerService = groupManager
   ) {}
 
   /**
@@ -32,6 +34,13 @@ export class AutoReplyService {
     api.listener.on("undo", (undo: Undo) => {
       void this.handleUndoEvent(accountId, undo);
     });
+
+    // Trigger background sync of all groups for account
+    try {
+      void this.grpManager.syncAccountGroups(accountId, api);
+    } catch (err) {
+      logger.debug({ accountId, err }, "Failed to initiate group sync");
+    }
   }
 
   public async handleIncomingMessage(accountId: string, api: API, message: Message): Promise<void> {
@@ -41,6 +50,11 @@ export class AutoReplyService {
     const msgId = String(rawData.msgId || rawData.cliMsgId || Date.now());
     const cliMsgId = rawData.cliMsgId ? String(rawData.cliMsgId) : undefined;
     const threadType = message.type === ThreadType.Group ? "GROUP" : "USER";
+
+    // Auto cache group metadata if it's a group message
+    if (message.type === ThreadType.Group) {
+      void this.grpManager.ensureGroupCached(accountId, message.threadId, api);
+    }
 
     // 1. Anti-Revoke Message Logging: Always save message to DB immediately
     await this.msgLogger.logMessage({

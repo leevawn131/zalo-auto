@@ -8,6 +8,8 @@ import { requireActiveSubscription } from "../../common/middlewares/subscription
 import { prisma } from "../../config/database.js";
 import { logger } from "../../config/logger.js";
 import { messageLogger } from "./message-logger.service.js";
+import { groupManager } from "./group-manager.service.js";
+import { authService } from "../zalo-auth/zalo-auth.service.js";
 import { TenantAccessDeniedError } from "../zalo-auth/zalo-auth.errors.js";
 
 const updateConfigSchema = z.object({
@@ -255,9 +257,11 @@ export function createAutoReplyController(): Router {
       const type = req.query.type as "ALL" | "USER" | "GROUP" | undefined;
       const search = req.query.search as string | undefined;
 
+      const activeConn = authService.getActiveConnection(accountId);
       const result = await messageLogger.getConversationThreads(accountId, userId, {
         type,
         search,
+        api: activeConn?.api,
       });
 
       if (!result) {
@@ -272,6 +276,44 @@ export function createAutoReplyController(): Router {
         return;
       }
       res.status(500).json({ error: "Failed to fetch conversation threads" });
+    }
+  });
+
+  /**
+   * POST /api/zalo/accounts/:id/sync-groups (Force sync group metadata from Zalo API)
+   */
+  router.post("/accounts/:id/sync-groups", async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const accountId = req.params.id;
+
+      const account = await prisma.zaloAccount.findUnique({
+        where: { id: accountId },
+      });
+
+      if (!account) {
+        res.status(404).json({ error: "Account not found" });
+        return;
+      }
+      if (account.userId !== userId) {
+        res.status(403).json({ error: "Access denied" });
+        return;
+      }
+
+      const activeConn = authService.getActiveConnection(accountId);
+      if (!activeConn || !activeConn.api) {
+        res.status(400).json({ error: "Tài khoản hiện không trực tuyến để đồng bộ nhóm từ Zalo" });
+        return;
+      }
+
+      await groupManager.syncAccountGroups(accountId, activeConn.api);
+
+      res.json({
+        success: true,
+        message: "Đã đồng bộ thông tin nhóm thành công",
+      });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to sync groups" });
     }
   });
 

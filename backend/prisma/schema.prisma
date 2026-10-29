@@ -119,6 +119,21 @@ model MessageEvent {
   @@map("message_events")
 }
 
+model GroupMetadata {
+  id          String   @id @default(cuid())
+  accountId   String
+  groupId     String
+  name        String
+  avatar      String?
+  totalMember Int?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@unique([accountId, groupId])
+  @@index([accountId])
+  @@map("group_metadata")
+}
+
 model Subscription {
   id           String               @id @default(cuid())
   userId       String
